@@ -6,19 +6,25 @@ import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 
 object Main extends App {
 
-  val text = "(1+1)-2\n"
+  val text =
+    """
+      | fun sarlompa(x:Int,y:Bool) {
+      |    return x + 1;
+      | }
+      |
+    """.stripMargin
 
-  val lalala = new ExprBaseListener()
+  val lalala = new CucarachaGrammarBaseListener
 
   val inputStream = new ANTLRInputStream(text)
 
-  val lexer = new ExprLexer(inputStream)
+  val lexer = new CucarachaGrammarLexer(inputStream)
 
   val tokens = new CommonTokenStream(lexer)
 
-  val parser = new ExprParser(tokens)
+  val parser = new CucarachaGrammarParser(tokens)
 
-  val tree = parser.prog()
+  val tree = parser.program()
 
   println(tree.toStringTree(parser))
 
