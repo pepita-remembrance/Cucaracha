@@ -6,3 +6,4 @@
 /.project
 /src-gen
 /.idea
+*.tokens

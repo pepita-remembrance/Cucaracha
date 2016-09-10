@@ -1,6 +1,5 @@
 package ar.edu.unq.parse.tp1
 
-import org.antlr.samples.antlr4example._
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 
 
@@ -8,8 +7,8 @@ object Main extends App {
 
   val text =
     """
-      | fun sarlompa(x:Int,y:Bool) {
-      |    return x + 1;
+      | fun sarlompa(x:Int,y:Bool):Int {
+      |    return x + 1
       | }
       |
     """.stripMargin

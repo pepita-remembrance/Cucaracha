@@ -9,7 +9,8 @@ start_rule: program EOF;
 program : (function_declaration)*;
 function_declaration : FUN ID params (COLON type)? block;
 
-params: LPAREN (ID (COMMA ID)*)? RPAREN;
+params: LPAREN (param (COMMA param)*)? RPAREN;
+param: ID COLON type;
 
 block : LBRACE instructions RBRACE;
 instructions :  ( instr_assign
