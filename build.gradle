@@ -50,7 +50,7 @@ def moveAntlrGeneratedFilesToTheirPackages(FileTree grammarFiles, generatedFolde
     project.delete fileTree(generatedFolder).include('*.*')
 }
 
-def extractPackageNameFromGrammerFile(File grammarFile) {
+static def extractPackageNameFromGrammerFile(File grammarFile) {
     def grammarPackage = "unknown.package"
     def packageRegex = ~/[ ]*package[ ]*([a-zA-Z]+[a-zA-Z0-9.-_]*)[ ]*;/
     grammarFile.eachLine { line ->
