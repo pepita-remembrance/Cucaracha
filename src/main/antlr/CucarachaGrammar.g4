@@ -5,9 +5,8 @@ import CucarachaLexer;
     package ar.edu.unq.parse.tp1;
 }
 
-start_rule: program EOF;
-program : (function_declaration)*;
-function_declaration : FUN ID params (COLON type)? block;
+program : (function)* (EOF)?;
+function : FUN ID params (COLON type)? block;
 
 params: LPAREN (param (COMMA param)*)? RPAREN;
 param: ID COLON type;

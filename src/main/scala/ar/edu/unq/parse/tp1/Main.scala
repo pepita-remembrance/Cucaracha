@@ -7,13 +7,11 @@ object Main extends App {
 
   val text =
     """
-      | fun sarlompa(x:Int,y:Bool):Int {
+      | fun sarasa(x:Int,y:Bool):Int {
       |    return x + 1
       | }
       |
     """.stripMargin
-
-  val lalala = new CucarachaGrammarBaseListener
 
   val inputStream = new ANTLRInputStream(text)
 
