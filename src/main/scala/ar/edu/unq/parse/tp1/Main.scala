@@ -21,8 +21,8 @@ object Main extends App {
 
   val parser = new CucarachaGrammarParser(tokens)
 
-  val tree = parser.program()
+  val parseTree = parser.program()
 
-  println(tree.toStringTree(parser))
+  println(parseTree.toStringTree(parser))
 
 }

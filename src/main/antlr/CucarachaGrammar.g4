@@ -35,6 +35,7 @@ expr: ( expr_variable
       | expr_vec_len
       | exp_vec_deref
       | instr_call
+      | NOT expr
 ) (bin_op expr)?;
 
 expr_variable:      ID;
