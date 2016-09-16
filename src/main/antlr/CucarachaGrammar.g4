@@ -28,33 +28,43 @@ instr_return:    RETURN expr;
 instr_call:      ID LPAREN expr_list RPAREN;
 expr_list:       (expr (COMMA expr)*)?;
 
-//expr: ( expr_variable
-//      | expr_literal_num
-//      | expr_literal_bool
-//      | expr_vec_cons
-//      | expr_vec_len
-//      | exp_vec_deref
-//      | instr_call
-//      | NOT expr
-//) (bin_op expr)?;
+expr: expr AND expr_logic
+        | expr_logic;
 
-expr: unary_expr | expr bin_op expr;
+expr_logic: expr_logic OR expr_logic_atomic
+                | expr_logic_atomic;
 
-unary_expr: NOT expr
-            | LPAREN expr RPAREN
-            | expr_variable
+expr_logic_atomic: NOT expr_logic_atomic
+                    | expr_rel;
+
+expr_rel: expr_math_term LE expr_math_term
+            | expr_math_term GE expr_math_term
+            | expr_math_term LT expr_math_term
+            | expr_math_term GT expr_math_term
+            | expr_math_term EQ expr_math_term
+            | expr_math_term NE expr_math_term
+            | expr_math_term;
+
+expr_math_term: expr_math_term PLUS expr_math_mul
+                | expr_math_term MINUS expr_math_mul
+                | expr_math_mul;
+
+expr_math_mul: expr_math_mul TIMES expr_atom
+                | expr_atom;
+
+expr_atom: expr_variable
             | expr_literal_num
             | expr_literal_bool
             | expr_vec_cons
             | expr_vec_len
-            | exp_vec_deref
-            | instr_call;
+            | expr_vec_deref
+            | instr_call
+            | LPAREN expr RPAREN;
 
 expr_variable:      ID;
 expr_literal_num:   NUM;
 expr_literal_bool:  TRUE | FALSE;
 expr_vec_cons:      LBRACK expr_list RBRACK;
 expr_vec_len:       HASH ID;
-exp_vec_deref:      ID LBRACK expr RBRACK;
-bin_op :            AND | OR | PLUS | MINUS | TIMES | LE | GE | LT | GT | EQ | NE ;
+expr_vec_deref:     ID LBRACK expr RBRACK;
 type:               INT | BOOL | VEC;

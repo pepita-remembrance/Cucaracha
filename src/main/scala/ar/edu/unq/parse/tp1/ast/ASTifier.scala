@@ -6,7 +6,8 @@ import org.antlr.v4.runtime.tree.ParseTree
 
 import scala.collection.JavaConversions._
 
-class ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
+object ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
+
   override def visitProgram(ctx: ProgramContext): Program = {
     val functions = ctx.function.map(visitFunction)
     Program(functions)
@@ -89,17 +90,89 @@ class ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
     Call(id, params)
   }
 
-  override def visitExpr(ctx: ExprContext): Expression = ???
+  override def visitExpr(ctx: ExprContext): Expression = {
+    if (ctx.AND() != null)
+      LogicAnd(visitExpr(ctx.expr()), visitExpr_logic(ctx.expr_logic()))
+    else
+      visitExpr_logic(ctx.expr_logic())
+  }
 
-  override def visitExpr_variable(ctx: Expr_variableContext): Variable = ???
+  override def visitExpr_logic(ctx: Expr_logicContext): Expression = {
+    if (ctx.OR() != null)
+      LogicOr(visitExpr_logic(ctx.expr_logic()), visitExpr_logic_atomic(ctx.expr_logic_atomic()))
+    else
+      visitExpr_logic_atomic(ctx.expr_logic_atomic())
+  }
 
-  override def visitExpr_literal_num(ctx: Expr_literal_numContext): ConstantInt = ???
+  override def visitExpr_logic_atomic(ctx: Expr_logic_atomicContext): Expression = {
+    if (ctx.NOT() != null)
+      LogicNot(visitExpr_logic_atomic(ctx.expr_logic_atomic()))
+    else
+      visitExpr_rel(ctx.expr_rel())
+  }
 
-  override def visitExpr_literal_bool(ctx: Expr_literal_boolContext): ConstantBool = ???
+  override def visitExpr_rel(ctx: Expr_relContext): Expression = {
+    if (ctx.LE() != null)
+      RelLE(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+    else if (ctx.GE() != null)
+      RelGE(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+    else if (ctx.LT() != null)
+      RelLT(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+    else if (ctx.GT() != null)
+      RelGT(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+    else if (ctx.EQ() != null)
+      RelEQ(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+    else if (ctx.NE() != null)
+      RelNE(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+    else
+      visitExpr_math_term(ctx.expr_math_term(0))
+  }
 
-  override def visitExpr_vec_cons(ctx: Expr_vec_consContext): Vector = ???
+  override def visitExpr_math_term(ctx: Expr_math_termContext): Expression = {
+    if (ctx.PLUS() != null)
+      MathPlus(visitExpr_math_term(ctx.expr_math_term()), visitExpr_math_mul(ctx.expr_math_mul()))
+    else if (ctx.MINUS() != null)
+      MathMinus(visitExpr_math_term(ctx.expr_math_term()), visitExpr_math_mul(ctx.expr_math_mul()))
+    else
+      visitExpr_math_mul(ctx.expr_math_mul())
+  }
 
-  override def visitExpr_vec_len(ctx: Expr_vec_lenContext): VectorLength = ???
+  override def visitExpr_math_mul(ctx: Expr_math_mulContext): Expression = {
+    if (ctx.TIMES() != null)
+      MathTimes(visitExpr_math_mul(ctx.expr_math_mul()), visitExpr_atom(ctx.expr_atom()))
+    else
+      visitExpr_atom(ctx.expr_atom())
+  }
 
-  override def visitExp_vec_deref(ctx: Exp_vec_derefContext): VectorDeref = ???
+  override def visitExpr_atom(ctx: Expr_atomContext): Expression = {
+    if (ctx.LPAREN() != null)
+      visitExpr(ctx.expr())
+    else ctx.children.head match {
+      case c: Expr_variableContext => visitExpr_variable(c)
+      case c: Expr_literal_numContext => visitExpr_literal_num(c)
+      case c: Expr_literal_boolContext => visitExpr_literal_bool(c)
+      case c: Expr_vec_consContext => visitExpr_vec_cons(c)
+      case c: Expr_vec_lenContext => visitExpr_vec_len(c)
+      case c: Expr_vec_derefContext => visitExpr_vec_deref(c)
+    }
+  }
+
+  override def visitExpr_variable(ctx: Expr_variableContext): Variable =
+    Variable(ctx.ID().getText)
+
+  override def visitExpr_literal_num(ctx: Expr_literal_numContext): ConstantInt =
+    ConstantInt(ctx.NUM().getText.toInt)
+
+  override def visitExpr_literal_bool(ctx: Expr_literal_boolContext): ConstantBool =
+    if (ctx.TRUE() != null) ConstantBool(true)
+    else ConstantBool(false)
+
+  override def visitExpr_vec_cons(ctx: Expr_vec_consContext): Vector =
+    Vector(ctx.expr_list().expr().map(visitExpr))
+
+  override def visitExpr_vec_len(ctx: Expr_vec_lenContext): VectorLength =
+    VectorLength(ctx.ID().getText)
+
+  override def visitExpr_vec_deref(ctx: Expr_vec_derefContext): VectorDeref =
+    VectorDeref(ctx.ID().getText, visitExpr(ctx.expr()))
 }
