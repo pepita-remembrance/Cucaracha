@@ -10,7 +10,7 @@ class IndentableStringBuilder(indentStep: String) {
 
   def indent() = indentLevel += 1
 
-  def dedent() = indentLevel = Math.min(indentLevel - 1, 0)
+  def dedent() = indentLevel = Math.max(indentLevel - 1, 0)
 
   override def toString = builder.toString
 
@@ -175,6 +175,8 @@ case class ExprNe(expr1: Expression, expr2: Expression) extends BinaryExpression
 object CucaTypes {
 
   sealed trait Type extends ASTTree {
+    override def key: String = super.key.stripSuffix("$")
+
     def serializeContents(builder: IndentableStringBuilder): Unit = {}
   }
 
