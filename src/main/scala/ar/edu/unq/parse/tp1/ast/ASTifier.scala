@@ -1,7 +1,7 @@
 package ar.edu.unq.parse.tp1.ast
 
-import ar.edu.unq.parse.tp1.{CucarachaGrammarBaseVisitor, CucarachaGrammarParser}
 import ar.edu.unq.parse.tp1.CucarachaGrammarParser._
+import ar.edu.unq.parse.tp1.{CucarachaGrammarBaseVisitor, CucarachaGrammarParser}
 import org.antlr.v4.runtime.tree.ParseTree
 
 import scala.collection.JavaConversions._
@@ -26,15 +26,14 @@ class ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
     Param(id, cucaType)
   }
 
-  override def visitType(ctx: TypeContext): CucaTypes.Type =
-    ifNull[TypeContext, CucaTypes.Type](
-      ctx,
-      CucaTypes.CucaUnit,
-      _.getText match {
-        case "Int" => CucaTypes.CucaInt
-        case "Bool" => CucaTypes.CucaBool
-        case "Vec" => CucaTypes.CucaVec
-      })
+  override def visitType(ctx: TypeContext): CucaTypes.Type = {
+    if (ctx == null) CucaTypes.CucaUnit
+    else ctx.getText match {
+      case "Int" => CucaTypes.CucaInt
+      case "Bool" => CucaTypes.CucaBool
+      case "Vec" => CucaTypes.CucaVec
+    }
+  }
 
   def visitInstruction: PartialFunction[ParseTree, Instruction] = {
     import CucarachaGrammarParser._
@@ -64,10 +63,12 @@ class ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
   override def visitInstr_if(ctx: Instr_ifContext): IfThenElse = {
     val condition = visitExpr(ctx.expr())
     val branchTrue = ctx.block(0).instructions().children.collect(visitInstruction)
-    val branchFalse = ifNull[BlockContext, Seq[Instruction]](
-      ctx.block(1),
-      List.empty[Instruction],
-      _.instructions().children.collect(visitInstruction))
+    val falseBlock = ctx.block(1)
+    val branchFalse = if (falseBlock == null) List.empty[Instruction]
+    else {
+      falseBlock.instructions().children.collect(visitInstruction)
+    }
+
     IfThenElse(condition, branchTrue, branchFalse)
   }
 
@@ -90,10 +91,15 @@ class ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
 
   override def visitExpr(ctx: ExprContext): Expression = ???
 
-  def ifNull[A, B](value: A, default: B, elseDo: A => B) = if (value == null) {
-    default
-  } else {
-    elseDo(value)
-  }
+  override def visitExpr_variable(ctx: Expr_variableContext): Variable = ???
 
+  override def visitExpr_literal_num(ctx: Expr_literal_numContext): ConstantInt = ???
+
+  override def visitExpr_literal_bool(ctx: Expr_literal_boolContext): ConstantBool = ???
+
+  override def visitExpr_vec_cons(ctx: Expr_vec_consContext): Vector = ???
+
+  override def visitExpr_vec_len(ctx: Expr_vec_lenContext): VectorLength = ???
+
+  override def visitExp_vec_deref(ctx: Exp_vec_derefContext): VectorDeref = ???
 }

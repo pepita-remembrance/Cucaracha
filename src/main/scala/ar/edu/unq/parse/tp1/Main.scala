@@ -2,14 +2,18 @@ package ar.edu.unq.parse.tp1
 
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 
-
 object Main extends App {
 
+//  val text =
+//    """
+//      | fun sarasa(x:Int,y:Bool):Int {
+//      |    return x + 1 * 5
+//      | }
+//      |
+//    """.stripMargin
   val text =
     """
-      | fun sarasa(x:Int,y:Bool):Int {
-      |    return x + 1 * 5
-      | }
+      | x + 1 * 5
       |
     """.stripMargin
 
@@ -21,8 +25,11 @@ object Main extends App {
 
   val parser = new CucarachaGrammarParser(tokens)
 
-  val parseTree = parser.program().function(0)
+//  val parseTree = parser.program()
+  val parseTree = parser.expr()
 
   println(parseTree.toStringTree(parser))
+
+  println(parseTree.bin_op().toStringTree(parser))
 
 }

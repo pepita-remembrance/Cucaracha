@@ -28,15 +28,27 @@ instr_return:    RETURN expr;
 instr_call:      ID LPAREN expr_list RPAREN;
 expr_list:       (expr (COMMA expr)*)?;
 
-expr: ( expr_variable
-      | expr_literal_num
-      | expr_literal_bool
-      | expr_vec_cons
-      | expr_vec_len
-      | exp_vec_deref
-      | instr_call
-      | NOT expr
-) (bin_op expr)?;
+//expr: ( expr_variable
+//      | expr_literal_num
+//      | expr_literal_bool
+//      | expr_vec_cons
+//      | expr_vec_len
+//      | exp_vec_deref
+//      | instr_call
+//      | NOT expr
+//) (bin_op expr)?;
+
+expr: unary_expr | expr bin_op expr;
+
+unary_expr: NOT expr
+            | LPAREN expr RPAREN
+            | expr_variable
+            | expr_literal_num
+            | expr_literal_bool
+            | expr_vec_cons
+            | expr_vec_len
+            | exp_vec_deref
+            | instr_call;
 
 expr_variable:      ID;
 expr_literal_num:   NUM;
