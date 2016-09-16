@@ -32,6 +32,6 @@ object Main extends App {
 
   val ast = ASTifier.visit(parseTree)
 
-  println(ast)
+  println(ast.serialize)
 
 }

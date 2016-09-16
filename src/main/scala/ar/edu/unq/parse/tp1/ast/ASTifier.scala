@@ -6,7 +6,7 @@ import org.antlr.v4.runtime.tree.ParseTree
 
 import scala.collection.JavaConversions._
 
-object ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
+object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
 
   override def visitProgram(ctx: ProgramContext): Program = {
     val functions = ctx.function.map(visitFunction)
@@ -21,10 +21,10 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
     CucaFunction(id, params, body, returnType)
   }
 
-  override def visitParam(ctx: ParamContext): Param = {
+  override def visitParam(ctx: ParamContext): Parameter = {
     val id = ctx.ID().getText
     val cucaType = visitType(ctx.`type`())
-    Param(id, cucaType)
+    Parameter(id, cucaType)
   }
 
   override def visitType(ctx: TypeContext): CucaTypes.Type = {
@@ -48,20 +48,20 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
     }
   }
 
-  override def visitInstr_assign(ctx: Instr_assignContext): Assign = {
+  override def visitInstr_assign(ctx: Instr_assignContext): StmtAssign = {
     val id = ctx.ID().getText
     val expression = visitExpr(ctx.expr())
-    Assign(id, expression)
+    StmtAssign(id, expression)
   }
 
-  override def visitInstr_vecassign(ctx: Instr_vecassignContext): VectorAssign = {
+  override def visitInstr_vecassign(ctx: Instr_vecassignContext): StmtVecAssign = {
     val id = ctx.ID().getText
     val position = visitExpr(ctx.expr(0))
     val value = visitExpr(ctx.expr(1))
-    VectorAssign(id, position, value)
+    StmtVecAssign(id, position, value)
   }
 
-  override def visitInstr_if(ctx: Instr_ifContext): IfThenElse = {
+  override def visitInstr_if(ctx: Instr_ifContext): StmtIfElse = {
     val condition = visitExpr(ctx.expr())
     val branchTrue = ctx.block(0).instructions().children.collect(visitInstruction)
     val falseBlock = ctx.block(1)
@@ -70,76 +70,76 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
       falseBlock.instructions().children.collect(visitInstruction)
     }
 
-    IfThenElse(condition, branchTrue, branchFalse)
+    StmtIfElse(condition, branchTrue, branchFalse)
   }
 
-  override def visitInstr_while(ctx: Instr_whileContext): While = {
+  override def visitInstr_while(ctx: Instr_whileContext): StmtWhile = {
     val condition = visitExpr(ctx.expr())
     val body = ctx.block().instructions().children.collect(visitInstruction)
-    While(condition, body)
+    StmtWhile(condition, body)
   }
 
-  override def visitInstr_return(ctx: Instr_returnContext): Return = {
+  override def visitInstr_return(ctx: Instr_returnContext): StmtReturn = {
     val value = visitExpr(ctx.expr())
-    Return(value)
+    StmtReturn(value)
   }
 
-  override def visitInstr_call(ctx: Instr_callContext): Call = {
+  override def visitInstr_call(ctx: Instr_callContext): StmtCall = {
     val id = ctx.ID().getText
     val params = ctx.expr_list().expr().map(visitExpr)
-    Call(id, params)
+    StmtCall(id, params)
   }
 
   override def visitExpr(ctx: ExprContext): Expression = {
     if (ctx.AND() != null)
-      LogicAnd(visitExpr(ctx.expr()), visitExpr_logic(ctx.expr_logic()))
+      ExprAnd(visitExpr(ctx.expr()), visitExpr_logic(ctx.expr_logic()))
     else
       visitExpr_logic(ctx.expr_logic())
   }
 
   override def visitExpr_logic(ctx: Expr_logicContext): Expression = {
     if (ctx.OR() != null)
-      LogicOr(visitExpr_logic(ctx.expr_logic()), visitExpr_logic_atomic(ctx.expr_logic_atomic()))
+      ExprOr(visitExpr_logic(ctx.expr_logic()), visitExpr_logic_atomic(ctx.expr_logic_atomic()))
     else
       visitExpr_logic_atomic(ctx.expr_logic_atomic())
   }
 
   override def visitExpr_logic_atomic(ctx: Expr_logic_atomicContext): Expression = {
     if (ctx.NOT() != null)
-      LogicNot(visitExpr_logic_atomic(ctx.expr_logic_atomic()))
+      ExprNot(visitExpr_logic_atomic(ctx.expr_logic_atomic()))
     else
       visitExpr_rel(ctx.expr_rel())
   }
 
   override def visitExpr_rel(ctx: Expr_relContext): Expression = {
     if (ctx.LE() != null)
-      RelLE(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+      ExprLe(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
     else if (ctx.GE() != null)
-      RelGE(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+      ExprGe(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
     else if (ctx.LT() != null)
-      RelLT(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+      ExprLt(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
     else if (ctx.GT() != null)
-      RelGT(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+      ExprGt(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
     else if (ctx.EQ() != null)
-      RelEQ(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+      ExprEq(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
     else if (ctx.NE() != null)
-      RelNE(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
+      ExprNe(visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
     else
       visitExpr_math_term(ctx.expr_math_term(0))
   }
 
   override def visitExpr_math_term(ctx: Expr_math_termContext): Expression = {
     if (ctx.PLUS() != null)
-      MathPlus(visitExpr_math_term(ctx.expr_math_term()), visitExpr_math_mul(ctx.expr_math_mul()))
+      ExprAdd(visitExpr_math_term(ctx.expr_math_term()), visitExpr_math_mul(ctx.expr_math_mul()))
     else if (ctx.MINUS() != null)
-      MathMinus(visitExpr_math_term(ctx.expr_math_term()), visitExpr_math_mul(ctx.expr_math_mul()))
+      ExprSub(visitExpr_math_term(ctx.expr_math_term()), visitExpr_math_mul(ctx.expr_math_mul()))
     else
       visitExpr_math_mul(ctx.expr_math_mul())
   }
 
   override def visitExpr_math_mul(ctx: Expr_math_mulContext): Expression = {
     if (ctx.TIMES() != null)
-      MathTimes(visitExpr_math_mul(ctx.expr_math_mul()), visitExpr_atom(ctx.expr_atom()))
+      ExprMul(visitExpr_math_mul(ctx.expr_math_mul()), visitExpr_atom(ctx.expr_atom()))
     else
       visitExpr_atom(ctx.expr_atom())
   }
@@ -157,22 +157,22 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTNode] {
     }
   }
 
-  override def visitExpr_variable(ctx: Expr_variableContext): Variable =
-    Variable(ctx.ID().getText)
+  override def visitExpr_variable(ctx: Expr_variableContext): ExprVar =
+    ExprVar(ctx.ID().getText)
 
-  override def visitExpr_literal_num(ctx: Expr_literal_numContext): ConstantInt =
-    ConstantInt(ctx.NUM().getText.toInt)
+  override def visitExpr_literal_num(ctx: Expr_literal_numContext): ExprConstNum =
+    ExprConstNum(ctx.NUM().getText.toInt)
 
-  override def visitExpr_literal_bool(ctx: Expr_literal_boolContext): ConstantBool =
-    if (ctx.TRUE() != null) ConstantBool(true)
-    else ConstantBool(false)
+  override def visitExpr_literal_bool(ctx: Expr_literal_boolContext): ExprConstBool =
+    if (ctx.TRUE() != null) ExprConstBool(true)
+    else ExprConstBool(false)
 
-  override def visitExpr_vec_cons(ctx: Expr_vec_consContext): Vector =
-    Vector(ctx.expr_list().expr().map(visitExpr))
+  override def visitExpr_vec_cons(ctx: Expr_vec_consContext): ExprVecMake =
+    ExprVecMake(ctx.expr_list().expr().map(visitExpr))
 
-  override def visitExpr_vec_len(ctx: Expr_vec_lenContext): VectorLength =
-    VectorLength(ctx.ID().getText)
+  override def visitExpr_vec_len(ctx: Expr_vec_lenContext): ExprVecLength =
+    ExprVecLength(ctx.ID().getText)
 
-  override def visitExpr_vec_deref(ctx: Expr_vec_derefContext): VectorDeref =
-    VectorDeref(ctx.ID().getText, visitExpr(ctx.expr()))
+  override def visitExpr_vec_deref(ctx: Expr_vec_derefContext): ExprVecDeref =
+    ExprVecDeref(ctx.ID().getText, visitExpr(ctx.expr()))
 }
