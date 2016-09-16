@@ -8,7 +8,7 @@ object Main extends App {
   val text =
     """
       | fun sarasa(x:Int,y:Bool):Int {
-      |    return x + 1
+      |    return x + 1 * 5
       | }
       |
     """.stripMargin
@@ -21,7 +21,7 @@ object Main extends App {
 
   val parser = new CucarachaGrammarParser(tokens)
 
-  val parseTree = parser.program()
+  val parseTree = parser.program().function(0)
 
   println(parseTree.toStringTree(parser))
 
