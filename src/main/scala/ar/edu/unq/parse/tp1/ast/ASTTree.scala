@@ -1,6 +1,6 @@
 package ar.edu.unq.parse.tp1.ast
 
-import ar.edu.unq.parse.tp1.ast.CucaTypes.Type
+import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaBool, CucaInt, CucaVec, Type}
 
 class IndentableStringBuilder(indentStep: String) {
   val builder = new StringBuilder
@@ -110,7 +110,10 @@ case class StmtCall(id: String, params: Seq[Expression]) extends Instruction wit
   }
 }
 
-trait Expression extends ASTTree
+trait Expression extends ASTTree {
+  def infer:Type = throw new NotImplementedError("getType not implemented")
+  def checkType = throw new NotImplementedError("getType not implemented")
+}
 
 case class ExprVar(id: String) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(id)
@@ -118,18 +121,25 @@ case class ExprVar(id: String) extends Expression {
 
 case class ExprConstNum(value: Int) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(value.toString)
+  override def infer: Type = CucaInt
 }
 
 case class ExprConstBool(value: Boolean) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(value.toString)
+  override def infer: Type = CucaBool
 }
 
 case class ExprVecMake(values: Seq[Expression]) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = values.foreach(_.serialize(builder))
+  override def infer: Type = {
+    values.foreach( CucaInt <===>  _ )
+    CucaVec
+  }
 }
 
 case class ExprVecLength(id: String) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(id)
+  override def infer: Type = CucaInt
 }
 
 case class ExprVecDeref(id: String, position: Expression) extends Expression {
@@ -137,40 +147,14 @@ case class ExprVecDeref(id: String, position: Expression) extends Expression {
     builder.appendln(id)
     position.serialize(builder)
   }
+  override def infer: Type = CucaInt
 }
 
 case class ExprNot(expr: Expression) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = expr.serialize(builder)
 }
 
-class BinaryExpression(expr1: Expression, expr2: Expression) extends Expression {
-  def serializeContents(builder: IndentableStringBuilder): Unit = {
-    expr1.serialize(builder)
-    expr2.serialize(builder)
-  }
-}
-
-case class ExprAnd(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprOr(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprAdd(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprSub(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprMul(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprLe(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprGe(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprLt(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprGt(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprEq(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
-
-case class ExprNe(expr1: Expression, expr2: Expression) extends BinaryExpression(expr1, expr2)
+case class TypeException(m:String) extends Exception(m)
 
 object CucaTypes {
 
@@ -178,6 +162,11 @@ object CucaTypes {
     override def key: String = super.key.stripSuffix("$")
 
     def serializeContents(builder: IndentableStringBuilder): Unit = {}
+
+    def <===> (other:Type): Type = {
+      if (this != other) throw TypeException("Tipos incompatibles")
+      this
+    }
   }
 
   case object CucaUnit extends Type
@@ -188,4 +177,5 @@ object CucaTypes {
 
   case object CucaVec extends Type
 
-}
+  implicit def exprToType(expr:Expression):Type = expr.infer
+ }
