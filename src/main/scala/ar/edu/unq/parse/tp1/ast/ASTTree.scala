@@ -1,6 +1,6 @@
 package ar.edu.unq.parse.tp1.ast
 
-import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaBool, CucaInt, CucaVec, Type}
+import ar.edu.unq.parse.tp1.ast.CucaTypes._
 
 class IndentableStringBuilder(indentStep: String) {
   val builder = new StringBuilder
@@ -67,13 +67,18 @@ case class Parameter(id: String, paramType: Type) extends ASTTree {
   }
 }
 
-trait Instruction extends ASTTree
+trait Instruction extends ASTTree {
+  def checkType = throw new NotImplementedError
+}
 
 case class StmtAssign(id: String, value: Expression) extends Instruction {
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     builder.appendln(id)
     value.serialize(builder)
   }
+
+  override def checkType: Unit = value.infer
+
 }
 
 case class StmtVecAssign(id: String, position: Expression, value: Expression) extends Instruction {
@@ -82,6 +87,8 @@ case class StmtVecAssign(id: String, position: Expression, value: Expression) ex
     position.serialize(builder)
     value.serialize(builder)
   }
+
+  override def checkType: Unit = value <===> CucaVec &&& position <===> CucaInt
 }
 
 case class StmtIfElse(condition: Expression, branchTrue: Seq[Instruction], branchFalse: Seq[Instruction]) extends Instruction {
@@ -90,6 +97,8 @@ case class StmtIfElse(condition: Expression, branchTrue: Seq[Instruction], branc
     wrapInBlock(builder, branchTrue)
     wrapInBlock(builder, branchFalse)
   }
+
+  override def checkType: Unit = condition <===> CucaBool
 }
 
 case class StmtWhile(condition: Expression, body: Seq[Instruction]) extends Instruction {
@@ -97,10 +106,14 @@ case class StmtWhile(condition: Expression, body: Seq[Instruction]) extends Inst
     condition.serialize(builder)
     wrapInBlock(builder, body)
   }
+
+  override def checkType: Unit = condition <===> CucaBool
 }
 
 case class StmtReturn(value: Expression) extends Instruction {
   def serializeContents(builder: IndentableStringBuilder): Unit = value.serialize(builder)
+
+  override def checkType: Unit = throw new NotImplementedError
 }
 
 case class StmtCall(id: String, params: Seq[Expression]) extends Instruction with Expression {
@@ -108,15 +121,19 @@ case class StmtCall(id: String, params: Seq[Expression]) extends Instruction wit
     builder.appendln(id)
     params.foreach(_.serialize(builder))
   }
+
+  override def checkType: Unit = throw new NotImplementedError
 }
 
 trait Expression extends ASTTree {
-  def infer:Type = throw new NotImplementedError("getType not implemented")
-  def checkType = throw new NotImplementedError("getType not implemented")
+  def infer:Type = throw new NotImplementedError
+  def checkType = throw new NotImplementedError
 }
 
 case class ExprVar(id: String) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(id)
+
+  override def checkType: Unit = throw new NotImplementedError
 }
 
 case class ExprConstNum(value: Int) extends Expression {
@@ -165,6 +182,10 @@ object CucaTypes {
 
     def <===> (other:Type): Type = {
       if (this != other) throw TypeException("Tipos incompatibles")
+      this
+    }
+
+    def &&& (other:Type): Type = {
       this
     }
   }
