@@ -37,16 +37,16 @@ expr_logic: expr_logic OR expr_logic_atomic
 expr_logic_atomic: NOT expr_logic_atomic
                     | expr_rel;
 
-expr_rel: expr_math_term LE expr_math_term
-            | expr_math_term GE expr_math_term
-            | expr_math_term LT expr_math_term
-            | expr_math_term GT expr_math_term
-            | expr_math_term EQ expr_math_term
-            | expr_math_term NE expr_math_term
+expr_rel: expr_math_term op=LE expr_math_term
+            | expr_math_term op=GE expr_math_term
+            | expr_math_term op=LT expr_math_term
+            | expr_math_term op=GT expr_math_term
+            | expr_math_term op=EQ expr_math_term
+            | expr_math_term op=NE expr_math_term
             | expr_math_term;
 
-expr_math_term: expr_math_term PLUS expr_math_mul
-                | expr_math_term MINUS expr_math_mul
+expr_math_term: expr_math_term op=PLUS expr_math_mul
+                | expr_math_term op=MINUS expr_math_mul
                 | expr_math_mul;
 
 expr_math_mul: expr_math_mul TIMES expr_atom

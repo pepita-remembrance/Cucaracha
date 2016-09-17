@@ -8,7 +8,7 @@ object Main extends App {
   val text =
     """
       | fun sarasa(x:Int,y:Bool):Int {
-      |    return x + 1 * 5
+      |    return 1 > 2
       | }
       |
     """.stripMargin
