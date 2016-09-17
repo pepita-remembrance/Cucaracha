@@ -30,6 +30,11 @@ dependencies {
     compile "org.scala-lang:scala-library:$scalaVersion"
 }
 
+generateGrammarSource {
+    maxHeapSize = "64m"
+    arguments += ["-visitor", "-long-messages"]
+}
+
 generateGrammarSource.doFirst {
     outputDirectory = new File(GENERATED_MAIN)
 }
