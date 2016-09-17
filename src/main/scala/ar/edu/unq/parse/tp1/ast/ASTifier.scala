@@ -119,8 +119,8 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
     (ctx.op.getText match {
       case "<=" => ExprLe
       case ">=" => ExprGe
-      case "<"  => ExprLt
-      case ">"  => ExprGt
+      case "<" => ExprLt
+      case ">" => ExprGt
       case "==" => ExprEq
       case "!=" => ExprNe
     }) (visitExpr_math_term(ctx.expr_math_term(0)), visitExpr_math_term(ctx.expr_math_term(1)))
@@ -144,12 +144,13 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
   override def visitExpr_atom(ctx: Expr_atomContext): Expression = {
     if (ctx.LPAREN() != null) return visitExpr(ctx.expr())
     ctx.children.head match {
-      case c: Expr_variableContext     => visitExpr_variable(c)
-      case c: Expr_literal_numContext  => visitExpr_literal_num(c)
+      case c: Expr_variableContext => visitExpr_variable(c)
+      case c: Expr_literal_numContext => visitExpr_literal_num(c)
       case c: Expr_literal_boolContext => visitExpr_literal_bool(c)
-      case c: Expr_vec_consContext     => visitExpr_vec_cons(c)
-      case c: Expr_vec_lenContext      => visitExpr_vec_len(c)
-      case c: Expr_vec_derefContext    => visitExpr_vec_deref(c)
+      case c: Expr_vec_consContext => visitExpr_vec_cons(c)
+      case c: Expr_vec_lenContext => visitExpr_vec_len(c)
+      case c: Expr_vec_derefContext => visitExpr_vec_deref(c)
+      case c: Instr_callContext => visitInstr_call(c)
     }
   }
 

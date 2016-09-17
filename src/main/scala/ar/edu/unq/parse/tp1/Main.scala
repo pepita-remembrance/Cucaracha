@@ -13,12 +13,6 @@ object Main extends App {
       |
     """.stripMargin
 
-//  val text =
-//    """
-//      | x + 1 * 5
-//      |
-//    """.stripMargin
-
   val inputStream = new ANTLRInputStream(text)
 
   val lexer = new CucarachaGrammarLexer(inputStream)
@@ -28,7 +22,6 @@ object Main extends App {
   val parser = new CucarachaGrammarParser(tokens)
 
   val parseTree = parser.program()
-//  val parseTree = parser.expr()
 
   val ast = ASTifier.visit(parseTree)
 
