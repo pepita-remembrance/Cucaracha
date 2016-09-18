@@ -68,7 +68,7 @@ case class Parameter(id: String, paramType: Type) extends ASTTree {
 }
 
 trait Instruction extends ASTTree {
-  def checkType = throw new NotImplementedError
+  def checkType(): Type = throw new NotImplementedError
 }
 
 case class StmtAssign(id: String, value: Expression) extends Instruction {
@@ -77,7 +77,7 @@ case class StmtAssign(id: String, value: Expression) extends Instruction {
     value.serialize(builder)
   }
 
-  override def checkType: Unit = value.infer
+  override def checkType(): Type = value.infer
 
 }
 
@@ -88,17 +88,28 @@ case class StmtVecAssign(id: String, position: Expression, value: Expression) ex
     value.serialize(builder)
   }
 
-  override def checkType: Unit = value <===> CucaVec &&& position <===> CucaInt
+  override def checkType(): Type = value <===> CucaVec &&& position <===> CucaInt
 }
 
-case class StmtIfElse(condition: Expression, branchTrue: Seq[Instruction], branchFalse: Seq[Instruction]) extends Instruction {
+trait StatementIf extends Instruction {
+  def condition:Expression
+  def branchTrue:Seq[Instruction]
+
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     condition.serialize(builder)
     wrapInBlock(builder, branchTrue)
-    wrapInBlock(builder, branchFalse)
   }
 
-  override def checkType: Unit = condition <===> CucaBool
+  override def checkType(): Type = condition <===> CucaBool
+}
+
+case class StmtIf(condition: Expression, branchTrue: Seq[Instruction]) extends StatementIf
+
+case class StmtIfElse(condition: Expression, branchTrue: Seq[Instruction], branchFalse: Seq[Instruction]) extends StatementIf {
+  override def serializeContents(builder: IndentableStringBuilder): Unit = {
+    super.serializeContents(builder)
+    wrapInBlock(builder, branchFalse)
+  }
 }
 
 case class StmtWhile(condition: Expression, body: Seq[Instruction]) extends Instruction {
@@ -107,33 +118,33 @@ case class StmtWhile(condition: Expression, body: Seq[Instruction]) extends Inst
     wrapInBlock(builder, body)
   }
 
-  override def checkType: Unit = condition <===> CucaBool
+  override def checkType(): Type = condition <===> CucaBool
 }
 
 case class StmtReturn(value: Expression) extends Instruction {
   def serializeContents(builder: IndentableStringBuilder): Unit = value.serialize(builder)
 
-  override def checkType: Unit = throw new NotImplementedError
+  override def checkType(): Type = throw new NotImplementedError
 }
 
-case class StmtCall(id: String, params: Seq[Expression]) extends Instruction with Expression {
+case class StmtCall(id: String, params: Seq[Expression]) extends Instruction {
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     builder.appendln(id)
     params.foreach(_.serialize(builder))
   }
 
-  override def checkType: Unit = throw new NotImplementedError
+  override def checkType(): Type = throw new NotImplementedError
 }
 
 trait Expression extends ASTTree {
   def infer:Type = throw new NotImplementedError
-  def checkType = throw new NotImplementedError
+  def checkType:Type = throw new NotImplementedError
 }
 
 case class ExprVar(id: String) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(id)
 
-  override def checkType: Unit = throw new NotImplementedError
+  override def checkType: Type = throw new NotImplementedError
 }
 
 case class ExprConstNum(value: Int) extends Expression {
@@ -142,7 +153,7 @@ case class ExprConstNum(value: Int) extends Expression {
 }
 
 case class ExprConstBool(value: Boolean) extends Expression {
-  def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(value.toString)
+  def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(value.toString.capitalize)
   override def infer: Type = CucaBool
 }
 
@@ -165,6 +176,15 @@ case class ExprVecDeref(id: String, position: Expression) extends Expression {
     position.serialize(builder)
   }
   override def infer: Type = CucaInt
+}
+
+case class ExprCall(id: String, params: Seq[Expression]) extends Expression {
+  def serializeContents(builder: IndentableStringBuilder): Unit = {
+    builder.appendln(id)
+    params.foreach(_.serialize(builder))
+  }
+
+  override def checkType: Type = throw new NotImplementedError
 }
 
 case class ExprNot(expr: Expression) extends Expression {

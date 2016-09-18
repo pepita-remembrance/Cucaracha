@@ -16,7 +16,7 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
     CucaFunction(
       id = ctx.ID().getText,
       params = ctx.params.param.map(visitParam),
-      body = ctx.block().instructions().children.collect(visitInstruction),
+      body = ctx.block().children.collect(visitInstruction),
       returnType = visitType(ctx.`type`())
     )
   }
@@ -64,21 +64,22 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
     )
   }
 
-  override def visitInstr_if(ctx: Instr_ifContext): StmtIfElse = {
-    StmtIfElse(
-      condition = visitExpr(ctx.expr()),
-      branchTrue = ctx.block(0).instructions().children.collect(visitInstruction),
-      ctx.block(1) match {
-        case null => List.empty[Instruction]
-        case block => block.instructions().children.collect(visitInstruction)
-      }
-    )
+  override def visitInstr_if(ctx: Instr_ifContext): StatementIf = {
+    ctx.block(1) match {
+      case null => StmtIf(
+        condition = visitExpr(ctx.expr()),
+        branchTrue = ctx.block(0).children.collect(visitInstruction))
+      case block => StmtIfElse(
+        condition = visitExpr(ctx.expr()),
+        branchTrue = ctx.block(0).children.collect(visitInstruction),
+        branchFalse = block.children.collect(visitInstruction))
+    }
   }
 
   override def visitInstr_while(ctx: Instr_whileContext): StmtWhile = {
     StmtWhile(
       condition = visitExpr(ctx.expr()),
-      body = ctx.block().instructions().children.collect(visitInstruction)
+      body = ctx.block().children.collect(visitInstruction)
     )
   }
 
@@ -95,14 +96,9 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
 
   override def visitExpr(ctx: ExprContext): Expression = {
     if (ctx.AND() != null)
-      ExprAnd(visitExpr(ctx.expr()), visitExpr_logic(ctx.expr_logic()))
-    else
-      visitExpr_logic(ctx.expr_logic())
-  }
-
-  override def visitExpr_logic(ctx: Expr_logicContext): Expression = {
-    if (ctx.OR() != null)
-      ExprOr(visitExpr_logic(ctx.expr_logic()), visitExpr_logic_atomic(ctx.expr_logic_atomic()))
+      ExprAnd(visitExpr(ctx.expr()), visitExpr_logic_atomic(ctx.expr_logic_atomic()))
+    else if (ctx.OR() != null)
+      ExprOr(visitExpr(ctx.expr()), visitExpr_logic_atomic(ctx.expr_logic_atomic()))
     else
       visitExpr_logic_atomic(ctx.expr_logic_atomic())
   }
@@ -150,7 +146,7 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
       case c: Expr_vec_consContext => visitExpr_vec_cons(c)
       case c: Expr_vec_lenContext => visitExpr_vec_len(c)
       case c: Expr_vec_derefContext => visitExpr_vec_deref(c)
-      case c: Instr_callContext => visitInstr_call(c)
+      case c: Expr_callContext => visitExpr_call(c)
     }
   }
 
@@ -171,4 +167,10 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
 
   override def visitExpr_vec_deref(ctx: Expr_vec_derefContext): ExprVecDeref =
     ExprVecDeref(ctx.ID().getText, visitExpr(ctx.expr()))
+
+  override def visitExpr_call(ctx: Expr_callContext): ExprCall =
+    ExprCall(
+      id = ctx.ID().getText,
+      params = ctx.expr_list().expr().map(visitExpr)
+    )
 }
