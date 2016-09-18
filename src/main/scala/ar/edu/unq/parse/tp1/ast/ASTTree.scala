@@ -92,8 +92,9 @@ case class StmtVecAssign(id: String, position: Expression, value: Expression) ex
 }
 
 trait StatementIf extends Instruction {
-  def condition:Expression
-  def branchTrue:Seq[Instruction]
+  def condition: Expression
+
+  def branchTrue: Seq[Instruction]
 
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     condition.serialize(builder)
@@ -137,8 +138,9 @@ case class StmtCall(id: String, params: Seq[Expression]) extends Instruction {
 }
 
 trait Expression extends ASTTree {
-  def infer:Type = throw new NotImplementedError
-  def checkType:Type = throw new NotImplementedError
+  def infer: Type = throw new NotImplementedError
+
+  def checkType: Type = throw new NotImplementedError
 }
 
 case class ExprVar(id: String) extends Expression {
@@ -149,24 +151,28 @@ case class ExprVar(id: String) extends Expression {
 
 case class ExprConstNum(value: Int) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(value.toString)
+
   override def infer: Type = CucaInt
 }
 
 case class ExprConstBool(value: Boolean) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(value.toString.capitalize)
+
   override def infer: Type = CucaBool
 }
 
 case class ExprVecMake(values: Seq[Expression]) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = values.foreach(_.serialize(builder))
+
   override def infer: Type = {
-    values.foreach( CucaInt <===>  _ )
+    values.foreach(CucaInt <===> _)
     CucaVec
   }
 }
 
 case class ExprVecLength(id: String) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = builder.appendln(id)
+
   override def infer: Type = CucaInt
 }
 
@@ -175,6 +181,7 @@ case class ExprVecDeref(id: String, position: Expression) extends Expression {
     builder.appendln(id)
     position.serialize(builder)
   }
+
   override def infer: Type = CucaInt
 }
 
@@ -191,7 +198,7 @@ case class ExprNot(expr: Expression) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = expr.serialize(builder)
 }
 
-case class TypeException(m:String) extends Exception(m)
+case class TypeException(m: String) extends Exception(m)
 
 object CucaTypes {
 
@@ -200,12 +207,12 @@ object CucaTypes {
 
     def serializeContents(builder: IndentableStringBuilder): Unit = {}
 
-    def <===> (other:Type): Type = {
+    def <===>(other: Type): Type = {
       if (this != other) throw TypeException("Tipos incompatibles")
       this
     }
 
-    def &&& (other:Type): Type = {
+    def &&&(other: Type): Type = {
       this
     }
   }
@@ -218,5 +225,5 @@ object CucaTypes {
 
   case object CucaVec extends Type
 
-  implicit def exprToType(expr:Expression):Type = expr.infer
- }
+  implicit def exprToType(expr: Expression): Type = expr.infer
+}
