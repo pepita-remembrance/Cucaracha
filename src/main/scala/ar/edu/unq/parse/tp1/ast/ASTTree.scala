@@ -1,6 +1,7 @@
 package ar.edu.unq.parse.tp1.ast
 
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
+import ar.edu.unq.parse.tp1.semantics.{DefaultSemanticChecker, SemanticChecker, TypeException}
 
 class IndentableStringBuilder(indentStep: String) {
   val builder = new StringBuilder
@@ -49,6 +50,10 @@ trait ASTTree {
 case class Program(functions: Seq[CucaFunction]) extends ASTTree {
   def serializeContents(builder: IndentableStringBuilder): Unit =
     functions.foreach(_.serialize(builder))
+
+  def semanticCheck(checker: SemanticChecker = DefaultSemanticChecker): Unit = {
+    checker.checkProgram(this)
+  }
 }
 
 case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Instruction], returnType: Type) extends ASTTree {
@@ -88,7 +93,7 @@ case class StmtVecAssign(id: String, position: Expression, value: Expression) ex
     value.serialize(builder)
   }
 
-  override def checkType(): Type = value <===> CucaVec &&& position <===> CucaInt
+  override def checkType(): Type = value <===> position <===> CucaInt
 }
 
 trait StatementIf extends Instruction {
@@ -198,8 +203,6 @@ case class ExprNot(expr: Expression) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = expr.serialize(builder)
 }
 
-case class TypeException(m: String) extends Exception(m)
-
 object CucaTypes {
 
   sealed trait Type extends ASTTree {
@@ -208,11 +211,7 @@ object CucaTypes {
     def serializeContents(builder: IndentableStringBuilder): Unit = {}
 
     def <===>(other: Type): Type = {
-      if (this != other) throw TypeException("Tipos incompatibles")
-      this
-    }
-
-    def &&&(other: Type): Type = {
+      if (this != other) throw TypeException(s"Type $key does not match ${other.key}")
       this
     }
   }

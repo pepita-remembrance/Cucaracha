@@ -1,13 +1,13 @@
 package ar.edu.unq.parse.tp1
 
-import ar.edu.unq.parse.tp1.ast.ASTifier
+import ar.edu.unq.parse.tp1.ast.{ASTifier, Program}
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 
 object Main extends App {
 
   val text =
     """
-      | fun sarasa(x:Int,y:Bool):Int {
+      | fun main(x:Int,y:Bool) {
       |    return 1 > 2
       | }
       |
@@ -23,8 +23,8 @@ object Main extends App {
 
   val parseTree = parser.program()
 
-  val ast = ASTifier.visit(parseTree)
+  val ast = ASTifier.visitProgram(parseTree)
 
-  println(ast.serialize)
+  ast.semanticCheck()
 
 }
