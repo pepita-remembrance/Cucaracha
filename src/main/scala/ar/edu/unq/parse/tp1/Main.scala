@@ -8,7 +8,11 @@ object Main extends App {
   val text =
     """
       | fun main(x:Int,y:Bool) {
-      |    return 1 > 2
+      |   return 1 > 2
+      | }
+      |
+      | fun asd():Vec {
+      |   x := 1
       | }
       |
     """.stripMargin

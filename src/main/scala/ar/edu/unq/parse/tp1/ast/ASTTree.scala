@@ -1,7 +1,7 @@
 package ar.edu.unq.parse.tp1.ast
 
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
-import ar.edu.unq.parse.tp1.semantics.{DefaultSemanticChecker, SemanticChecker, TypeException}
+import ar.edu.unq.parse.tp1.semantics.{DefaultSemantics, ID, SemanticChecker, TypeException}
 
 class IndentableStringBuilder(indentStep: String) {
   val builder = new StringBuilder
@@ -51,12 +51,12 @@ case class Program(functions: Seq[CucaFunction]) extends ASTTree {
   def serializeContents(builder: IndentableStringBuilder): Unit =
     functions.foreach(_.serialize(builder))
 
-  def semanticCheck(checker: SemanticChecker = DefaultSemanticChecker): Unit = {
+  def semanticCheck(checker: SemanticChecker = DefaultSemantics): Unit = {
     checker.checkProgram(this)
   }
 }
 
-case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Instruction], returnType: Type) extends ASTTree {
+case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Instruction], returnType: Type) extends ASTTree with ID {
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     builder.appendln(id)
     builder.appendln(returnType.key)
@@ -130,7 +130,7 @@ case class StmtWhile(condition: Expression, body: Seq[Instruction]) extends Inst
 case class StmtReturn(value: Expression) extends Instruction {
   def serializeContents(builder: IndentableStringBuilder): Unit = value.serialize(builder)
 
-  override def checkType(): Type = throw new NotImplementedError
+  override def checkType(): Type = value.infer
 }
 
 case class StmtCall(id: String, params: Seq[Expression]) extends Instruction {
