@@ -1,6 +1,8 @@
 package ar.edu.unq.parse.tp1.ast
 
 import ar.edu.unq.parse.tp1.CucarachaGrammarParser._
+import ar.edu.unq.parse.tp1.ast.expressions._
+import ar.edu.unq.parse.tp1.ast.instructions._
 import ar.edu.unq.parse.tp1.{CucarachaGrammarBaseVisitor, CucarachaGrammarParser}
 import org.antlr.v4.runtime.tree.ParseTree
 

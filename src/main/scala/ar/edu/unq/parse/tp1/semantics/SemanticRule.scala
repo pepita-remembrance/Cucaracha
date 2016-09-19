@@ -1,7 +1,8 @@
 package ar.edu.unq.parse.tp1.semantics
 
-import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaUnit, CucaVec, Type}
-import ar.edu.unq.parse.tp1.ast.{ASTTree, CucaFunction, Program, StmtReturn}
+import ar.edu.unq.parse.tp1.ast.CucaTypes.Type
+import ar.edu.unq.parse.tp1.ast.instructions.StmtReturn
+import ar.edu.unq.parse.tp1.ast.{ASTTree, CucaFunction, Program}
 
 trait SemanticRule[A <: ASTTree] {
   def check(tree: A): Unit

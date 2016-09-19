@@ -10,17 +10,17 @@ trait SemanticChecker {
   def predefinedFunctions: Seq[CucaFunction]
 
   def checkProgram(program: Program): Unit = {
-    implicit val context = new Context[CucaFunction](funID => s"Function $funID is undefined")
-    context ++= predefinedFunctions.map(f => (f.id, f))
-    context ++= program.functions.map(f => (f.id, f))
+    implicit val programContext = new Context[CucaFunction](funID => s"Function $funID is undefined")
+    predefinedFunctions.foreach(fun => programContext(fun.id) = fun)
+    program.functions.foreach(fun => programContext(fun.id) = fun)
     program.functions.foreach(checkFunction)
   }
 
   def buildFunctionContext(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Context[Type] = {
-    val functionContext = new Context[Type](varName => s"Variable $varName in function ${fun.id} is undefined")
-    functionContext ++= fun.params.map(p => (p.id, p.paramType))
-    //TODO: apply function body to new context
-    functionContext
+    implicit val localContext = new Context[Type](varName => s"Variable $varName in function ${fun.id} is undefined")
+    fun.params.foreach(p => localContext(p.id) = p.paramType)
+    fun.body.foreach(_.buildContext())
+    localContext
   }
 
   def checkFunction(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit
@@ -48,7 +48,7 @@ object DefaultSemantics extends SemanticChecker {
         HasOneReturn.check(fun)
         ReturnIsLastInstruction.check(fun)
         val functionContext = buildFunctionContext(fun)
-        //TODO: Use program and function context to check return statement
+      //TODO: Use program and function context to check return statement
     }
   }
 
@@ -56,10 +56,4 @@ object DefaultSemantics extends SemanticChecker {
 
 class Context[A](message: String => String) extends mutable.HashMap[String, A] {
   override def apply(key: String): A = getOrElse(key, throw SemanticException(message(key)))
-}
-
-class FunctionContext
-
-trait ID {
-  def id: String
 }

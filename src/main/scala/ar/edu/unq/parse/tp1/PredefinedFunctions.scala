@@ -1,7 +1,8 @@
 package ar.edu.unq.parse.tp1
 
 import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaInt, CucaUnit}
-import ar.edu.unq.parse.tp1.ast.{CucaFunction, Instruction, Parameter}
+import ar.edu.unq.parse.tp1.ast.instructions.Instruction
+import ar.edu.unq.parse.tp1.ast.{CucaFunction, Parameter}
 
 
 object PredefinedFunctions {
