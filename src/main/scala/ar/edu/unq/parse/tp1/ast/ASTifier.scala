@@ -2,7 +2,7 @@ package ar.edu.unq.parse.tp1.ast
 
 import ar.edu.unq.parse.tp1.CucarachaGrammarParser._
 import ar.edu.unq.parse.tp1.ast.expressions._
-import ar.edu.unq.parse.tp1.ast.instructions._
+import ar.edu.unq.parse.tp1.ast.statements._
 import ar.edu.unq.parse.tp1.{CucarachaGrammarBaseVisitor, CucarachaGrammarParser}
 import org.antlr.v4.runtime.tree.ParseTree
 
@@ -18,7 +18,7 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
     CucaFunction(
       id = ctx.ID().getText,
       params = ctx.params.param.map(visitParam),
-      body = ctx.block().children.collect(visitInstruction),
+      body = ctx.block().children.collect(visitStatement),
       returnType = visitType(ctx.`type`())
     )
   }
@@ -39,7 +39,7 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
     }
   }
 
-  def visitInstruction: PartialFunction[ParseTree, Instruction] = {
+  def visitStatement: PartialFunction[ParseTree, Statement] = {
     import CucarachaGrammarParser._
     {
       case i: Instr_assignContext => visitInstr_assign(i)
@@ -70,18 +70,18 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
     ctx.block(1) match {
       case null => StmtIf(
         condition = visitExpr(ctx.expr()),
-        branchTrue = ctx.block(0).children.collect(visitInstruction))
+        branchTrue = ctx.block(0).children.collect(visitStatement))
       case block => StmtIfElse(
         condition = visitExpr(ctx.expr()),
-        branchTrue = ctx.block(0).children.collect(visitInstruction),
-        branchFalse = block.children.collect(visitInstruction))
+        branchTrue = ctx.block(0).children.collect(visitStatement),
+        branchFalse = block.children.collect(visitStatement))
     }
   }
 
   override def visitInstr_while(ctx: Instr_whileContext): StmtWhile = {
     StmtWhile(
       condition = visitExpr(ctx.expr()),
-      body = ctx.block().children.collect(visitInstruction)
+      body = ctx.block().children.collect(visitStatement)
     )
   }
 
@@ -92,7 +92,7 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
   override def visitInstr_call(ctx: Instr_callContext): StmtCall = {
     StmtCall(
       id = ctx.ID().getText,
-      params = ctx.expr_list().expr().map(visitExpr)
+      args = ctx.expr_list().expr().map(visitExpr)
     )
   }
 
@@ -173,6 +173,6 @@ object ASTifier extends CucarachaGrammarBaseVisitor[ASTTree] {
   override def visitExpr_call(ctx: Expr_callContext): ExprCall =
     ExprCall(
       id = ctx.ID().getText,
-      params = ctx.expr_list().expr().map(visitExpr)
+      args = ctx.expr_list().expr().map(visitExpr)
     )
 }

@@ -2,6 +2,7 @@ package ar.edu.unq.parse.tp1.semantics
 
 import ar.edu.unq.parse.tp1.PredefinedFunctions.{PutChar, PutNum}
 import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaUnit, CucaVec, Type}
+import ar.edu.unq.parse.tp1.ast.statements.StmtReturn
 import ar.edu.unq.parse.tp1.ast.{CucaFunction, Program}
 
 import scala.collection.mutable
@@ -30,11 +31,11 @@ object DefaultSemantics extends SemanticChecker {
   def predefinedFunctions: Seq[CucaFunction] = List(PutChar, PutNum)
 
   override def checkProgram(program: Program): Unit = {
-    HasMainFunction.check(program)
-    val mainFun = program.functions.find(_.id == "main").get
-    MustReturn(CucaUnit).check(mainFun)
-    HasNParamenters(0).check(mainFun)
     HasNoDuplicateFunctions.check(program)
+    HasFunction("main").check(program)
+    val mainFun = program.functions.find(_.id == "main").get
+    HasNoReturns.check(mainFun)
+    HasNParamenters(0).check(mainFun)
     super.checkProgram(program)
   }
 
@@ -43,12 +44,13 @@ object DefaultSemantics extends SemanticChecker {
     fun.returnType match {
       case CucaUnit =>
         HasNoReturns.check(fun)
-        buildFunctionContext(fun)
+        implicit val localContext = buildFunctionContext(fun)
       case _ =>
         HasOneReturn.check(fun)
         ReturnIsLastInstruction.check(fun)
-        val functionContext = buildFunctionContext(fun)
-      //TODO: Use program and function context to check return statement
+        implicit val localContext = buildFunctionContext(fun)
+        val returnExpr = fun.body.collect({ case s: StmtReturn => s }).head.value
+        TypesAs(fun.returnType).check(returnExpr)
     }
   }
 

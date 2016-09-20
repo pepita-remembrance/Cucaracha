@@ -1,22 +1,22 @@
 package ar.edu.unq.parse.tp1
 
 import java.io.FileInputStream
-import scala.io.Source
 
-import ar.edu.unq.parse.tp1.ast.ASTifier
+import ar.edu.unq.parse.tp1.CucarachaGrammarParser.ProgramContext
+
+import scala.io.Source
+import ar.edu.unq.parse.tp1.ast.{ASTTree, ASTifier}
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 import org.scalatest.{FlatSpec, Matchers}
 
 
-trait BaseSpec extends FlatSpec with Matchers with ParsingTest {
-
-}
+trait BaseSpec extends FlatSpec with Matchers with ParsingTest
 
 trait ParsingTest {
   val cucaTestFilesFolder = "./src/test/tests_cucaracha/"
 
-  def parseInput(filePath: String, startRule: CucarachaGrammarParser => ParseTree = _.program()) = {
+  def parseInput[A <: ParseTree, B <: ASTTree](filePath: String, startRule: CucarachaGrammarParser => A, astifierMethod: A => B): B = {
     val file = new FileInputStream(cucaTestFilesFolder + filePath + ".input")
     val inputStream = new ANTLRInputStream(file)
     val lexer = new CucarachaGrammarLexer(inputStream)
@@ -24,10 +24,12 @@ trait ParsingTest {
     val parser = new CucarachaGrammarParser(tokens)
     val parseTree = startRule(parser)
 
-    ASTifier.visit(parseTree)
+    astifierMethod(parseTree)
   }
 
+  def parseInputProgram(filePath: String) = parseInput(filePath, _.program, ASTifier.visitProgram)
+
   def expected(filePath: String) = {
-    Source.fromFile(cucaTestFilesFolder + filePath + ".expected").getLines().mkString("\n")+"\n"
+    Source.fromFile(cucaTestFilesFolder + filePath + ".expected").getLines().mkString("\n") + "\n"
   }
 }

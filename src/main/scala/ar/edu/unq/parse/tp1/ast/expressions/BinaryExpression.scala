@@ -10,8 +10,6 @@ trait BinaryExpression extends Expression {
 
   def expr2: Expression
 
-  def argumentType: Type
-
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     expr1.serialize(builder)
     expr2.serialize(builder)
@@ -19,9 +17,7 @@ trait BinaryExpression extends Expression {
 }
 
 trait LogicExpression extends BinaryExpression {
-  val argumentType = CucaBool
-
-  override def infer(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type = CucaBool
+  override def infer(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type = CucaBool <===> expr1 <===> expr2
 }
 
 case class ExprAnd(expr1: Expression, expr2: Expression) extends LogicExpression
@@ -29,9 +25,7 @@ case class ExprAnd(expr1: Expression, expr2: Expression) extends LogicExpression
 case class ExprOr(expr1: Expression, expr2: Expression) extends LogicExpression
 
 trait ArithmeticExpression extends BinaryExpression {
-  val argumentType = CucaInt
-
-  override def infer(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type = CucaInt
+  override def infer(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type = CucaInt <===> expr1 <===> expr2
 }
 
 case class ExprAdd(expr1: Expression, expr2: Expression) extends ArithmeticExpression
@@ -41,9 +35,10 @@ case class ExprSub(expr1: Expression, expr2: Expression) extends ArithmeticExpre
 case class ExprMul(expr1: Expression, expr2: Expression) extends ArithmeticExpression
 
 trait ComparisonExpression extends BinaryExpression {
-  val argumentType = CucaInt
-
-  override def infer(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type = CucaBool
+  override def infer(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type = {
+    CucaInt <===> expr1 <===> expr2
+    CucaBool
+  }
 }
 
 case class ExprLe(expr1: Expression, expr2: Expression) extends ComparisonExpression

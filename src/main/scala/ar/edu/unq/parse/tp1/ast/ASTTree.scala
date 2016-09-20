@@ -2,7 +2,7 @@ package ar.edu.unq.parse.tp1.ast
 
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
 import ar.edu.unq.parse.tp1.ast.expressions.Expression
-import ar.edu.unq.parse.tp1.ast.instructions.Instruction
+import ar.edu.unq.parse.tp1.ast.statements.Statement
 import ar.edu.unq.parse.tp1.semantics.{Context, DefaultSemantics, SemanticChecker, TypeException}
 
 class IndentableStringBuilder(indentStep: String) {
@@ -58,7 +58,7 @@ case class Program(functions: Seq[CucaFunction]) extends ASTTree {
   }
 }
 
-case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Instruction], returnType: Type) extends ASTTree {
+case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Statement], returnType: Type) extends ASTTree {
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     builder.appendln(id)
     builder.appendln(returnType.key)
