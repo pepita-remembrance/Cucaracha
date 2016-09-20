@@ -77,3 +77,9 @@ static def extractPackageNameFromGrammerFile(File grammarFile) {
 task wrapper(type: Wrapper) {
     gradleVersion = '2.10'
 }
+
+task spec(dependsOn: ['testClasses'], type: JavaExec) {
+    main = 'org.scalatest.tools.Runner'
+    args = ['-R', 'build/classes/test', '-o']
+    classpath = sourceSets.test.runtimeClasspath
+}

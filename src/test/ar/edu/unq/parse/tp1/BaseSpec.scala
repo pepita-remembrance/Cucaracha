@@ -2,14 +2,12 @@ package ar.edu.unq.parse.tp1
 
 import java.io.FileInputStream
 
-import ar.edu.unq.parse.tp1.CucarachaGrammarParser.ProgramContext
-
-import scala.io.Source
 import ar.edu.unq.parse.tp1.ast.{ASTTree, ASTifier}
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.io.Source
 
 trait BaseSpec extends FlatSpec with Matchers with ParsingTest
 
