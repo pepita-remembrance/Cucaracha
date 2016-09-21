@@ -7,14 +7,13 @@ object Main extends App {
 
   val text =
     """
-      | fun main(x:Int,y:Bool) {
-      |   return 1 > 2
+      | fun main() {
+      |   putChar(nextChar(65))
       | }
       |
-      | fun asd():Vec {
-      |   x := 1
+      | fun nextChar(someChar:Int):Int {
+      |   return someChar + 1
       | }
-      |
     """.stripMargin
 
   val inputStream = new ANTLRInputStream(text)
@@ -30,5 +29,7 @@ object Main extends App {
   val ast = ASTifier.visitProgram(parseTree)
 
   ast.semanticCheck()
+
+  ast.execute()
 
 }

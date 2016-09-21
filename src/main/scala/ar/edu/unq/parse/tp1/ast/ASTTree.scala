@@ -1,8 +1,9 @@
 package ar.edu.unq.parse.tp1.ast
 
+import ar.edu.unq.parse.tp1.PredefinedFunctions
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
 import ar.edu.unq.parse.tp1.ast.expressions.Expression
-import ar.edu.unq.parse.tp1.ast.statements.Statement
+import ar.edu.unq.parse.tp1.ast.statements.{Statement, StmtReturn}
 import ar.edu.unq.parse.tp1.semantics.{Context, DefaultSemantics, SemanticChecker, TypeException}
 
 import scala.collection.mutable
@@ -49,6 +50,8 @@ trait ASTTree {
 
   def serializeContents(builder: IndentableStringBuilder): Unit
 
+
+  def fetch[T <: AnyRef](id:String)(implicit programContext: Context[CucaFunction], localContext: Context[Any]): T = localContext(id).asInstanceOf[T]
 }
 
 case class Program(functions: Seq[CucaFunction]) extends ASTTree {
@@ -58,18 +61,32 @@ case class Program(functions: Seq[CucaFunction]) extends ASTTree {
   def semanticCheck(checker: SemanticChecker = DefaultSemantics): Unit = {
     checker.check(this)
   }
+
+  def execute(): Unit = {
+    val programContext = new Context[CucaFunction](funID => s"Function $funID is undefined")
+    Seq(PredefinedFunctions.PutChar, PredefinedFunctions.PutNum).foreach(fun => programContext(fun.id) = fun)
+    this.functions.foreach(fun => programContext(fun.id) = fun)
+    functions.filter(_.id == "main").head.evalWith(Seq.empty)(programContext)
+  }
 }
 
 case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Statement], returnType: Type) extends ASTTree {
-
-  implicit val context:CucaContext = new CucaContext
-  params.foreach(p => context.put(p.id, p.paramType))
 
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     builder.appendln(id)
     builder.appendln(returnType.key)
     params.foreach(_.serialize(builder))
     wrapInBlock(builder, body)
+  }
+
+  def evalWith(values: Seq[Any])(implicit programContext: Context[CucaFunction]): Any = {
+    implicit val localContext = new Context[Any]( m => s"Error inesperado: $m")
+    localContext ++= params.map(_.id).zip(values)
+    body.foreach(_.iterpret)
+    returnType match {
+      case CucaUnit => CucaUnit
+      case x        => body.last.asInstanceOf[StmtReturn].value.eval
+    }
   }
 }
 
@@ -93,6 +110,8 @@ object CucaTypes {
     }
   }
 
+  type InternalVec = scala.collection.mutable.MutableList[Int]
+
   case object CucaUnit extends Type
 
   case object CucaInt extends Type
@@ -103,5 +122,3 @@ object CucaTypes {
 
   implicit def exprToType(expr: Expression)(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type = expr.infer
 }
-
-class CucaContext extends mutable.HashMap[String, Type]
