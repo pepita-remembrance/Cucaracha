@@ -28,6 +28,7 @@ repositories {
 dependencies {
     antlr "org.antlr:antlr4:4.5.2"
     compile "org.scala-lang:scala-library:$scalaVersion"
+    compile "org.scalatest:scalatest_2.11:3.0.0"
 }
 
 generateGrammarSource {
@@ -75,4 +76,10 @@ static def extractPackageNameFromGrammerFile(File grammarFile) {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '2.10'
+}
+
+task spec(dependsOn: ['testClasses'], type: JavaExec) {
+    main = 'org.scalatest.tools.Runner'
+    args = ['-R', 'build/classes/test', '-o']
+    classpath = sourceSets.test.runtimeClasspath
 }

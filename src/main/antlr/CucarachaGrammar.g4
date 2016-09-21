@@ -11,14 +11,13 @@ function : FUN ID params (COLON type)? block;
 params: LPAREN (param (COMMA param)*)? RPAREN;
 param: ID COLON type;
 
-block : LBRACE instructions RBRACE;
-instructions :  ( instr_assign
+block : LBRACE ( instr_assign
                 | instr_vecassign
                 | instr_if
                 | instr_while
                 | instr_return
                 | instr_call
-                )* ;
+                )* RBRACE ;
 
 instr_assign:    ID ASSIGN expr;
 instr_vecassign: ID LBRACK expr RBRACK ASSIGN expr;
@@ -28,11 +27,9 @@ instr_return:    RETURN expr;
 instr_call:      ID LPAREN expr_list RPAREN;
 expr_list:       (expr (COMMA expr)*)?;
 
-expr: expr AND expr_logic
-        | expr_logic;
-
-expr_logic: expr_logic OR expr_logic_atomic
-                | expr_logic_atomic;
+expr: expr AND expr_logic_atomic
+        | expr OR expr_logic_atomic
+        | expr_logic_atomic;
 
 expr_logic_atomic: NOT expr_logic_atomic
                     | expr_rel;
@@ -58,7 +55,7 @@ expr_atom: expr_variable
             | expr_vec_cons
             | expr_vec_len
             | expr_vec_deref
-            | instr_call
+            | expr_call
             | LPAREN expr RPAREN;
 
 expr_variable:      ID;
@@ -67,4 +64,5 @@ expr_literal_bool:  TRUE | FALSE;
 expr_vec_cons:      LBRACK expr_list RBRACK;
 expr_vec_len:       HASH ID;
 expr_vec_deref:     ID LBRACK expr RBRACK;
+expr_call:      ID LPAREN expr_list RPAREN;
 type:               INT | BOOL | VEC;

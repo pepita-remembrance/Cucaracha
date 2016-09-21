@@ -1,23 +1,21 @@
 package ar.edu.unq.parse.tp1
 
-import ar.edu.unq.parse.tp1.ast.ASTifier
+import ar.edu.unq.parse.tp1.ast.{ASTifier, Program}
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 
 object Main extends App {
 
   val text =
     """
-      | fun sarasa(x:Int,y:Bool):Int {
-      |    return 1 > 2
+      | fun main(x:Int,y:Bool) {
+      |   return 1 > 2
+      | }
+      |
+      | fun asd():Vec {
+      |   x := 1
       | }
       |
     """.stripMargin
-
-//  val text =
-//    """
-//      | x + 1 * 5
-//      |
-//    """.stripMargin
 
   val inputStream = new ANTLRInputStream(text)
 
@@ -28,10 +26,9 @@ object Main extends App {
   val parser = new CucarachaGrammarParser(tokens)
 
   val parseTree = parser.program()
-//  val parseTree = parser.expr()
 
-  val ast = ASTifier.visit(parseTree)
+  val ast = ASTifier.visitProgram(parseTree)
 
-  println(ast.serialize)
+  ast.semanticCheck()
 
 }
