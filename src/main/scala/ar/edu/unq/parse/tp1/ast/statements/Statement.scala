@@ -16,9 +16,9 @@ case class StmtAssign(id: String, value: Expression) extends Statement {
   }
 
   def buildContext()(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Unit = {
-    val infered = value.infer
-    if (localContext.contains(id)) localContext(id) <===> infered
-    else localContext(id) = infered
+    val inferred = value.infer
+    if (localContext.contains(id)) localContext(id) <===> inferred
+    else localContext(id) = inferred
   }
 }
 

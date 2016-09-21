@@ -7,9 +7,9 @@ import scala.reflect.ClassTag
 class CucarachaTest extends BaseSpec {
 
   val correctlyFormedPrograms = List("test01", "test02", "test03", "test05", "test06", "test08", "test09", "test10")
-  val incorreclyFormedPrograms = List("test00", "test04", "test07")
+  val incorrectlyFormedPrograms = List("test00", "test04", "test07")
 
-  val allPrograms = correctlyFormedPrograms ++ incorreclyFormedPrograms
+  val allPrograms = correctlyFormedPrograms ++ incorrectlyFormedPrograms
 
   allPrograms.foreach(testSerializeCorrectly)
 
