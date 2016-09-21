@@ -2,6 +2,8 @@ package ar.edu.unq.parse.tp1.ast
 
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
 
+import scala.collection.mutable
+
 class IndentableStringBuilder(indentStep: String) {
   val builder = new StringBuilder
   private var indentLevel = 0
@@ -52,6 +54,10 @@ case class Program(functions: Seq[CucaFunction]) extends ASTTree {
 }
 
 case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Instruction], returnType: Type) extends ASTTree {
+
+  implicit val context:CucaContext = new CucaContext
+  params.foreach(p => context.put(p.id, p.paramType))
+
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     builder.appendln(id)
     builder.appendln(returnType.key)
@@ -200,3 +206,5 @@ object CucaTypes {
 
   implicit def exprToType(expr:Expression):Type = expr.infer
  }
+
+class CucaContext extends mutable.HashMap[String, Type]
