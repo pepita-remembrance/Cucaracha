@@ -3,8 +3,10 @@ package ar.edu.unq.parse.tp1.semantics
 import ar.edu.unq.parse.tp1.ast.CucaTypes.Type
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
 import ar.edu.unq.parse.tp1.ast.expressions.Expression
-import ar.edu.unq.parse.tp1.ast.statements.StmtReturn
+import ar.edu.unq.parse.tp1.ast.statements.{Statement, StmtReturn}
 import ar.edu.unq.parse.tp1.ast.{ASTTree, CucaFunction, Program}
+
+import scala.reflect.ClassTag
 
 trait SemanticRule[A <: ASTTree] {
   def check(tree: A): Unit
@@ -42,6 +44,15 @@ case class CantReturn(forbiddenType: Type) extends SemanticRule[CucaFunction] {
 
 case class HasNParamenters(n: Int) extends SemanticRule[CucaFunction] {
   def check(fun: CucaFunction): Unit = if (fun.params.size != n) throw SemanticException(s"Function ${fun.id} is expected to have $n parameters")
+}
+
+case class HasNStatements[S <: Statement](expected: Int)(implicit tag: ClassTag[S]) extends SemanticRule[CucaFunction] {
+  def message(fun: CucaFunction): String = s"Function ${fun.id} must have $expected ${tag.runtimeClass.getSimpleName.stripPrefix("Stmt").toLowerCase} statements"
+
+  def check(fun: CucaFunction): Unit = {
+    val actual = fun.body.collect({ case i: S => i }).size
+    if (actual != expected) throw SemanticException(message(fun))
+  }
 }
 
 class HasNReturns(expected: Int) extends SemanticRule[CucaFunction] {

@@ -10,12 +10,9 @@ import scala.collection.mutable
 trait SemanticChecker {
   def predefinedFunctions: Seq[CucaFunction]
 
-  def checkProgram(program: Program): Unit = {
-    implicit val programContext = new Context[CucaFunction](funID => s"Function $funID is undefined")
-    predefinedFunctions.foreach(fun => programContext(fun.id) = fun)
-    program.functions.foreach(fun => programContext(fun.id) = fun)
-    program.functions.foreach(checkFunction)
-  }
+  def check(program: Program): Unit
+
+  def check(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit
 
   def buildFunctionContext(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Context[Type] = {
     implicit val localContext = new Context[Type](varName => s"Variable $varName in function ${fun.id} is undefined")
@@ -23,23 +20,19 @@ trait SemanticChecker {
     fun.body.foreach(_.buildContext())
     localContext
   }
-
-  def checkFunction(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit
 }
 
-object DefaultSemantics extends SemanticChecker {
+object DefaultSemantics extends SemanticChecker with SemanticDSL {
   def predefinedFunctions: Seq[CucaFunction] = List(PutChar, PutNum)
 
-  override def checkProgram(program: Program): Unit = {
-    HasNoDuplicateFunctions.check(program)
-    HasFunction("main").check(program)
-    val mainFun = program.functions.find(_.id == "main").get
-    HasNoReturns.check(mainFun)
-    HasNParamenters(0).check(mainFun)
-    super.checkProgram(program)
-  }
+  def check(program: Program): Unit = checkThat(program)(
+    hasNoDuplicateFunctions andThen
+      ("main" isDefined) andThen
+      ("main" has 0 returns) andThen
+      ("main" has 0 parameters) andThen
+      checkFunctionsBody)
 
-  def checkFunction(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit = {
+  def check(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit = {
     CantReturn(CucaVec).check(fun)
     fun.returnType match {
       case CucaUnit =>
