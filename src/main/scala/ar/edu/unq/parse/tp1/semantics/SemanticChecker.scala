@@ -2,7 +2,6 @@ package ar.edu.unq.parse.tp1.semantics
 
 import ar.edu.unq.parse.tp1.PredefinedFunctions.{PutChar, PutNum}
 import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaUnit, CucaVec, Type}
-import ar.edu.unq.parse.tp1.ast.statements.StmtReturn
 import ar.edu.unq.parse.tp1.ast.{CucaFunction, Program}
 
 import scala.collection.mutable
@@ -13,6 +12,13 @@ trait SemanticChecker {
   def check(program: Program): Unit
 
   def check(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit
+
+  def buildProgramContext(program: Program): Context[CucaFunction] = {
+    val programContext = new Context[CucaFunction](funID => s"Function $funID is undefined")
+    predefinedFunctions.foreach(fun => programContext(fun.id) = fun)
+    program.functions.foreach(fun => programContext(fun.id) = fun)
+    programContext
+  }
 
   def buildFunctionContext(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Context[Type] = {
     implicit val localContext = new Context[Type](varName => s"Variable $varName in function ${fun.id} is undefined")
@@ -33,18 +39,16 @@ object DefaultSemantics extends SemanticChecker with SemanticDSL {
       checkFunctionsBody)
 
   def check(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit = {
-    CantReturn(CucaVec).check(fun)
-    fun.returnType match {
-      case CucaUnit =>
-        HasNoReturns.check(fun)
-        implicit val localContext = buildFunctionContext(fun)
-      case _ =>
-        HasOneReturn.check(fun)
-        ReturnIsLastInstruction.check(fun)
-        implicit val localContext = buildFunctionContext(fun)
-        val returnExpr = fun.body.collect({ case s: StmtReturn => s }).head.value
-        TypesAs(fun.returnType).check(returnExpr)
-    }
+    implicit val localContext = buildFunctionContext(fun)
+    checkThat(fun)(
+      cantReturn(CucaVec) andThen
+        (fun.returnType match {
+          case CucaUnit => has(0) returns
+          case t => (has(1) returns) andThen
+            returnIsLastStatement andThen
+            returnTypesAs(t)
+        })
+    )
   }
 
 }

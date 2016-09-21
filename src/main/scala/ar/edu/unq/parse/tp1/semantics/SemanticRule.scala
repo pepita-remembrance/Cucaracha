@@ -55,20 +55,7 @@ case class HasNStatements[S <: Statement](expected: Int)(implicit tag: ClassTag[
   }
 }
 
-class HasNReturns(expected: Int) extends SemanticRule[CucaFunction] {
-  def message(fun: CucaFunction): String = s"Function ${fun.id} must have $expected return statements"
-
-  def check(fun: CucaFunction): Unit = {
-    val actual = fun.body.collect({ case i: StmtReturn => i }).size
-    if (actual != expected) throw SemanticException(message(fun))
-  }
-}
-
-object HasNoReturns extends HasNReturns(0)
-
-object HasOneReturn extends HasNReturns(1)
-
-object ReturnIsLastInstruction extends SemanticRule[CucaFunction] {
+object ReturnIsLastStatement extends SemanticRule[CucaFunction] {
   def check(fun: CucaFunction): Unit = fun.body.last match {
     case i: StmtReturn =>
     case _ => throw SemanticException(s"Function ${fun.id} must have a return statement as last instruction")

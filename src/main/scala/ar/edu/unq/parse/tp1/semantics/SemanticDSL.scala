@@ -1,15 +1,20 @@
 package ar.edu.unq.parse.tp1.semantics
 
-import ar.edu.unq.parse.tp1.ast.{CucaFunction, Program}
+import ar.edu.unq.parse.tp1.ast.CucaTypes.Type
 import ar.edu.unq.parse.tp1.ast.statements.{Statement, StmtReturn}
+import ar.edu.unq.parse.tp1.ast.{CucaFunction, Program}
 
 import scala.reflect.ClassTag
 
-trait SemanticDSL extends SemanticChecker {
+trait SemanticDSL extends SemanticChecker with ProgramSemanticDSL with FunctionSemanticDSL
 
+trait ProgramSemanticDSL extends SemanticChecker {
   type ProgramRule = Program => Program
 
-  def checkThat: Program => ProgramRule => Program = p => r => r(p)
+  def checkThat(program: Program): ProgramRule => Program = r => r(program)
+
+  def getFun(funName: String, program: Program) =
+    program.functions.find(_.id == funName).get
 
   def hasNoDuplicateFunctions: ProgramRule = { p =>
     HasNoDuplicateFunctions.check(p)
@@ -17,19 +22,14 @@ trait SemanticDSL extends SemanticChecker {
   }
 
   def checkFunctionsBody: ProgramRule = { program =>
-    implicit val programContext = new Context[CucaFunction](funID => s"Function $funID is undefined")
-    predefinedFunctions.foreach(fun => programContext(fun.id) = fun)
-    program.functions.foreach(fun => programContext(fun.id) = fun)
+    implicit val programContext = buildProgramContext(program)
     program.functions.foreach(check)
     program
   }
 
-  def getFun(funName: String, program: Program) =
-    program.functions.find(_.id == funName).get
-
   implicit class StringToFunInProgram(funName: String) {
 
-    def has(n: Int): FunHasChecker = FunHasChecker(n, funName)
+    def has(n: Int): FunNameHasChecker = FunNameHasChecker(n, funName)
 
     def isDefined: ProgramRule = { p =>
       HasFunction(funName).check(p)
@@ -38,7 +38,7 @@ trait SemanticDSL extends SemanticChecker {
 
   }
 
-  case class FunHasChecker(n: Int, funName: String) {
+  case class FunNameHasChecker(n: Int, funName: String) {
 
     def parameters: ProgramRule = { p =>
       val fun = getFun(funName, p)
@@ -50,6 +50,41 @@ trait SemanticDSL extends SemanticChecker {
       val fun = getFun(funName, p)
       HasNStatements[S](n).check(fun)
       p
+    }
+
+    def returns = statements[StmtReturn]
+  }
+
+}
+
+trait FunctionSemanticDSL extends SemanticChecker {
+  type FunctionRule = CucaFunction => CucaFunction
+
+  def checkThat(fun: CucaFunction): FunctionRule => CucaFunction = r => r(fun)
+
+  def cantReturn(cucaType: Type): FunctionRule = { fun =>
+    CantReturn(cucaType).check(fun)
+    fun
+  }
+
+  def returnIsLastStatement : FunctionRule = { fun =>
+    ReturnIsLastStatement.check(fun)
+    fun
+  }
+
+  def returnTypesAs(cucaType:Type)(implicit programContext: Context[CucaFunction], localContext: Context[Type]) : FunctionRule = { fun =>
+    val returnExpr = fun.body.collect({ case s: StmtReturn => s }).head.value
+    TypesAs(fun.returnType).check(returnExpr)
+    fun
+  }
+
+  def has(n: Int): FunHasChecker = FunHasChecker(n)
+
+  case class FunHasChecker(n: Int) {
+
+    def statements[S <: Statement : ClassTag]: FunctionRule = { fun =>
+      HasNStatements[S](n).check(fun)
+      fun
     }
 
     def returns = statements[StmtReturn]
