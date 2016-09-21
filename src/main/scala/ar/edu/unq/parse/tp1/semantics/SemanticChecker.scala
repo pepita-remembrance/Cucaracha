@@ -2,7 +2,6 @@ package ar.edu.unq.parse.tp1.semantics
 
 import ar.edu.unq.parse.tp1.PredefinedFunctions.{PutChar, PutNum}
 import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaUnit, CucaVec, Type}
-import ar.edu.unq.parse.tp1.ast.statements.StmtReturn
 import ar.edu.unq.parse.tp1.ast.{CucaFunction, Program}
 
 import scala.collection.mutable
@@ -10,11 +9,15 @@ import scala.collection.mutable
 trait SemanticChecker {
   def predefinedFunctions: Seq[CucaFunction]
 
-  def checkProgram(program: Program): Unit = {
-    implicit val programContext = new Context[CucaFunction](funID => s"Function $funID is undefined")
+  def check(program: Program): Unit
+
+  def check(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit
+
+  def buildProgramContext(program: Program): Context[CucaFunction] = {
+    val programContext = new Context[CucaFunction](funID => s"Function $funID is undefined")
     predefinedFunctions.foreach(fun => programContext(fun.id) = fun)
     program.functions.foreach(fun => programContext(fun.id) = fun)
-    program.functions.foreach(checkFunction)
+    programContext
   }
 
   def buildFunctionContext(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Context[Type] = {
@@ -23,35 +26,29 @@ trait SemanticChecker {
     fun.body.foreach(_.buildContext())
     localContext
   }
-
-  def checkFunction(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit
 }
 
-object DefaultSemantics extends SemanticChecker {
+object DefaultSemantics extends SemanticChecker with SemanticDSL {
   def predefinedFunctions: Seq[CucaFunction] = List(PutChar, PutNum)
 
-  override def checkProgram(program: Program): Unit = {
-    HasNoDuplicateFunctions.check(program)
-    HasFunction("main").check(program)
-    val mainFun = program.functions.find(_.id == "main").get
-    HasNoReturns.check(mainFun)
-    HasNParamenters(0).check(mainFun)
-    super.checkProgram(program)
-  }
+  def check(program: Program): Unit = checkThat(program)(
+    hasNoDuplicateFunctions andThen
+      ("main" isDefined) andThen
+      ("main" has 0 returns) andThen
+      ("main" has 0 parameters) andThen
+      checkFunctionsBody)
 
-  def checkFunction(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit = {
-    CantReturn(CucaVec).check(fun)
-    fun.returnType match {
-      case CucaUnit =>
-        HasNoReturns.check(fun)
-        implicit val localContext = buildFunctionContext(fun)
-      case _ =>
-        HasOneReturn.check(fun)
-        ReturnIsLastInstruction.check(fun)
-        implicit val localContext = buildFunctionContext(fun)
-        val returnExpr = fun.body.collect({ case s: StmtReturn => s }).head.value
-        TypesAs(fun.returnType).check(returnExpr)
-    }
+  def check(fun: CucaFunction)(implicit programContext: Context[CucaFunction]): Unit = {
+    implicit val localContext = buildFunctionContext(fun)
+    checkThat(fun)(
+      cantReturn(CucaVec) andThen
+        (fun.returnType match {
+          case CucaUnit => has(0) returns
+          case t => (has(1) returns) andThen
+            returnIsLastStatement andThen
+            returnTypesAs(t)
+        })
+    )
   }
 
 }

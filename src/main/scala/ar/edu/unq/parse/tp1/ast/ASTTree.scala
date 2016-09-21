@@ -56,7 +56,7 @@ case class Program(functions: Seq[CucaFunction]) extends ASTTree {
     functions.foreach(_.serialize(builder))
 
   def semanticCheck(checker: SemanticChecker = DefaultSemantics): Unit = {
-    checker.checkProgram(this)
+    checker.check(this)
   }
 }
 
