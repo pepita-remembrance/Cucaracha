@@ -1,5 +1,7 @@
 package ar.edu.unq.parse.tp1
 
+import java.io.{FileInputStream, FileNotFoundException}
+
 import ar.edu.unq.parse.tp1.ast.{ASTifier, Program}
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 
@@ -16,7 +18,12 @@ object Main extends App {
       | }
     """.stripMargin
 
-  val inputStream = new ANTLRInputStream(text)
+  val inputStream = try {
+    val fileStream = new FileInputStream(System.getProperty("target"))
+    new ANTLRInputStream(fileStream)
+  } catch {
+    case e: FileNotFoundException => new ANTLRInputStream(text)
+  }
 
   val lexer = new CucarachaGrammarLexer(inputStream)
 

@@ -20,4 +20,13 @@ Este proyecto contiene el el parser y analizador semántico del lenguaje Cucarac
  
  No debería ser necesario instalar nada más. Los scripts descargan automáticamente todas las dependencias necesarias.
  
- 
+### Ejecutar un archivo
+
+  - Windows: ejecutar `gradlew.bat run -Dtarget="./ruta/al/archivo"`
+  - Linux: ejecutar `./gradlew run -Dtarget="./ruta/al/archivo"`
+
+  Ejemplos:
+  - Windows: `gradlew.bat run -Dtarget="./src/test/tests_cucaracha/test01.input"`
+  - Linux: `./gradlew run -Dtarget="./src/test/tests_cucaracha/test01.input"`
+
+  Tambien se puede modificar el texto en Main.scala e invocar run sin argumentos.

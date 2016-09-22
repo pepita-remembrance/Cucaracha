@@ -9,7 +9,7 @@ import scala.collection.mutable
 trait Expression extends ASTTree {
   def infer(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type
 
-  def eval(implicit programContext: Context[CucaFunction], localContext: Context[Any]):Any
+  def eval(implicit programContext: Context[CucaFunction], localContext: Context[Any]): Any
 }
 
 
@@ -21,8 +21,8 @@ case class ExprVar(id: String) extends Expression {
   def eval(implicit programContext: Context[CucaFunction], localContext: Context[Any]) = localContext(id)
 }
 
-abstract class ConstantValue[T <: Any](thisType:Type) extends Expression {
-  def value:T
+abstract class ConstantValue[T <: Any](thisType: Type) extends Expression {
+  def value: T
 
   def infer(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Type = thisType
 
@@ -34,7 +34,7 @@ abstract class ConstantValue[T <: Any](thisType:Type) extends Expression {
 
 case class ExprConstNum(value: Int) extends ConstantValue[Int](CucaInt)
 
-case class ExprConstBool(value: Boolean)  extends ConstantValue[Boolean](CucaBool)
+case class ExprConstBool(value: Boolean) extends ConstantValue[Boolean](CucaBool)
 
 case class ExprVecMake(values: Seq[Expression]) extends Expression {
   def serializeContents(builder: IndentableStringBuilder): Unit = values.foreach(_.serialize(builder))
@@ -44,7 +44,7 @@ case class ExprVecMake(values: Seq[Expression]) extends Expression {
     CucaVec
   }
 
-  def eval(implicit programContext: Context[CucaFunction], localContext: Context[Any]) = mutable.MutableList(values.map(_.eval))
+  def eval(implicit programContext: Context[CucaFunction], localContext: Context[Any]) = values.map(_.eval).to[mutable.MutableList]
 }
 
 case class ExprVecLength(id: String) extends Expression {
