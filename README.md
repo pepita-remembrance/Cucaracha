@@ -29,4 +29,15 @@ Este proyecto contiene el el parser y analizador semántico del lenguaje Cucarac
   - Windows: `gradlew.bat run -Dtarget="./src/test/tests_cucaracha/test01.input"`
   - Linux: `./gradlew run -Dtarget="./src/test/tests_cucaracha/test01.input"`
 
-  Tambien se puede modificar el texto en Main.scala e invocar run sin argumentos.
+  Tambien se puede modificar el texto en CucaApp.scala e invocar run sin argumentos.
+
+### Compilar un archivo
+
+  - Windows: ejecutar `gradlew.bat assemble -Dtarget="./ruta/al/archivo"`
+  - Linux: ejecutar `./gradlew assemble -Dtarget="./ruta/al/archivo"`
+
+  Ejemplos:
+  - Windows: `gradlew.bat compile -Dtarget="./src/test/tests_cucaracha/test01.input"`
+  - Linux: `./gradlew compile -Dtarget="./src/test/tests_cucaracha/test01.input"`
+
+  Tambien se puede modificar el texto en CucaApp.scala e invocar compile sin argumentos.

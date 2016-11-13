@@ -90,3 +90,10 @@ task run(type: JavaExec) {
 
     systemProperty "target", System.getProperty("target")
 }
+
+task compile(type: JavaExec) {
+    main = 'ar.edu.unq.parse.tp1.Compile'
+    classpath = sourceSets.main.runtimeClasspath
+
+    systemProperty "target", System.getProperty("target")
+}

@@ -2,10 +2,11 @@ package ar.edu.unq.parse.tp1
 
 import java.io.{FileInputStream, FileNotFoundException}
 
-import ar.edu.unq.parse.tp1.ast.{ASTifier, Program}
+import ar.edu.unq.parse.tp1.assembler.{NasmAssemblerGenerator, WindowsEnviroment}
+import ar.edu.unq.parse.tp1.ast.ASTifier
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 
-object Run extends App {
+class CucaApp extends App {
 
   val text =
     """
@@ -46,6 +47,13 @@ object Run extends App {
 
   ast.semanticCheck()
 
-  ast.execute()
+}
 
+object Run extends CucaApp {
+  ast.execute()
+}
+
+object Compile extends CucaApp {
+  val generator = NasmAssemblerGenerator.`for`(WindowsEnviroment)
+  println(generator.assemble(ast))
 }
