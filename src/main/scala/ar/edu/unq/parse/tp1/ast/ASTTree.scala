@@ -1,26 +1,12 @@
 package ar.edu.unq.parse.tp1.ast
 
-import ar.edu.unq.parse.tp1.PredefinedFunctions
+import ar.edu.unq.parse.tp1.{IndentableStringBuilder, PredefinedFunctions}
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
 import ar.edu.unq.parse.tp1.ast.expressions.Expression
 import ar.edu.unq.parse.tp1.ast.statements.{Statement, StmtReturn}
 import ar.edu.unq.parse.tp1.semantics.{Context, DefaultSemantics, SemanticChecker, TypeException}
 
 import scala.collection.mutable
-
-class IndentableStringBuilder(indentStep: String) {
-  val builder = new StringBuilder
-  private var indentLevel = 0
-
-  def appendln(newLine: String): Unit = builder.++=(indentStep * indentLevel).++=(newLine).++=("\n")
-
-  def indent() = indentLevel += 1
-
-  def dedent() = indentLevel = Math.max(indentLevel - 1, 0)
-
-  override def toString = builder.toString
-
-}
 
 trait ASTTree {
 
@@ -34,24 +20,24 @@ trait ASTTree {
 
   def serialize(builder: IndentableStringBuilder) = {
     builder.appendln("(" + key)
-    builder.indent()
+      .indent()
     serializeContents(builder)
     builder.dedent()
-    builder.appendln(")")
+      .appendln(")")
   }
 
   def wrapInBlock(builder: IndentableStringBuilder, items: Seq[ASTTree]) = {
     builder.appendln("(Block")
-    builder.indent()
+      .indent()
     items.foreach(_.serialize(builder))
     builder.dedent()
-    builder.appendln(")")
+      .appendln(")")
   }
 
   def serializeContents(builder: IndentableStringBuilder): Unit
 
 
-  def fetch[T <: AnyRef](id:String)(implicit programContext: Context[CucaFunction], localContext: Context[Any]): T = localContext(id).asInstanceOf[T]
+  def fetch[T <: AnyRef](id: String)(implicit programContext: Context[CucaFunction], localContext: Context[Any]): T = localContext(id).asInstanceOf[T]
 }
 
 case class Program(functions: Seq[CucaFunction]) extends ASTTree {
@@ -74,18 +60,18 @@ case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Statement]
 
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     builder.appendln(id)
-    builder.appendln(returnType.key)
+      .appendln(returnType.key)
     params.foreach(_.serialize(builder))
     wrapInBlock(builder, body)
   }
 
   def evalWith(values: Seq[Any])(implicit programContext: Context[CucaFunction]): Any = {
-    implicit val localContext = new Context[Any]( m => s"Error inesperado: $m")
+    implicit val localContext = new Context[Any](m => s"Error inesperado: $m")
     localContext ++= params.map(_.id).zip(values)
     body.foreach(_.iterpret)
     returnType match {
       case CucaUnit => CucaUnit
-      case x        => body.last.asInstanceOf[StmtReturn].value.eval
+      case x => body.last.asInstanceOf[StmtReturn].value.eval
     }
   }
 }
@@ -93,7 +79,7 @@ case class CucaFunction(id: String, params: Seq[Parameter], body: Seq[Statement]
 case class Parameter(id: String, paramType: Type) extends ASTTree {
   def serializeContents(builder: IndentableStringBuilder): Unit = {
     builder.appendln(id)
-    builder.appendln(paramType.key)
+      .appendln(paramType.key)
   }
 }
 

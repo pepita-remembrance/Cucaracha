@@ -50,8 +50,8 @@ generateTestGrammarSource.doLast {
 }
 
 def moveAntlrGeneratedFilesToTheirPackages(FileTree grammarFiles, generatedFolder) {
-    grammarFiles.each {File file ->
-        final grammarName = file.name.lastIndexOf('.')>=0 ? file.name[0 .. file.name.lastIndexOf('.')-1] : file.name
+    grammarFiles.each { File file ->
+        final grammarName = file.name.lastIndexOf('.') >= 0 ? file.name[0..file.name.lastIndexOf('.') - 1] : file.name
         final grammarPackage = extractPackageNameFromGrammerFile(file)
         copy {
             from generatedFolder
@@ -67,7 +67,7 @@ static def extractPackageNameFromGrammerFile(File grammarFile) {
     def packageRegex = ~/[ ]*package[ ]*([a-zA-Z]+[a-zA-Z0-9.-_]*)[ ]*;/
     grammarFile.eachLine { line ->
         def matcher = packageRegex.matcher(line)
-        if (matcher.find()){
+        if (matcher.find()) {
             grammarPackage = matcher.group(1)
         }
     }
@@ -85,7 +85,7 @@ task spec(dependsOn: ['testClasses'], type: JavaExec) {
 }
 
 task run(type: JavaExec) {
-    main = 'ar.edu.unq.parse.tp1.Main'
+    main = 'ar.edu.unq.parse.tp1.Run'
     classpath = sourceSets.main.runtimeClasspath
 
     systemProperty "target", System.getProperty("target")
