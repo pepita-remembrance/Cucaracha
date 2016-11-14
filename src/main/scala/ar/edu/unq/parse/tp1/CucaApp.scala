@@ -2,9 +2,10 @@ package ar.edu.unq.parse.tp1
 
 import java.io.{FileInputStream, FileNotFoundException}
 
-import ar.edu.unq.parse.tp1.assembler.{NasmAssemblerGenerator, WindowsEnviroment}
+import ar.edu.unq.parse.tp1.assembler._
 import ar.edu.unq.parse.tp1.ast.ASTifier
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
+import org.apache.commons.lang3.SystemUtils
 
 class CucaApp extends App {
 
@@ -54,6 +55,14 @@ object Run extends CucaApp {
 }
 
 object Compile extends CucaApp {
-  val generator = NasmAssemblerGenerator.`for`(WindowsEnviroment)
+  implicit val enviroment: ExecutionEnviroment =
+    if(SystemUtils.IS_OS_WINDOWS)
+      WindowsEnviroment
+    else if(SystemUtils.IS_OS_UNIX)
+      UnixEnviroment
+    else
+      throw new RuntimeException("Unsuported operating system")
+
+  val generator = new NasmAssemblerGenerator
   println(generator.assemble(ast))
 }

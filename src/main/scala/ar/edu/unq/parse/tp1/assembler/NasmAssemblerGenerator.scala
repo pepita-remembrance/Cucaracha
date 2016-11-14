@@ -3,7 +3,7 @@ package ar.edu.unq.parse.tp1.assembler
 import ar.edu.unq.parse.tp1.IndentableStringBuilder
 import ar.edu.unq.parse.tp1.ast.{CucaFunction, Program}
 
-class NasmAssemblerGenerator(enviroment: ExecutionEnviroment) {
+class NasmAssemblerGenerator(implicit enviroment: ExecutionEnviroment) {
   import enviroment._
 
   def assemble(program: Program): String = {
@@ -27,8 +27,4 @@ class NasmAssemblerGenerator(enviroment: ExecutionEnviroment) {
 
   }
 
-}
-
-object NasmAssemblerGenerator {
-  def `for`(enviroment: ExecutionEnviroment) = new NasmAssemblerGenerator(enviroment)
 }
