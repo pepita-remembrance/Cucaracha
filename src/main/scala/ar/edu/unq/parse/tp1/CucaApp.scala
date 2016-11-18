@@ -7,33 +7,24 @@ import ar.edu.unq.parse.tp1.ast.ASTifier
 import org.antlr.v4.runtime.{ANTLRInputStream, CommonTokenStream}
 import org.apache.commons.lang3.SystemUtils
 
-class CucaApp extends App {
+abstract class CucaApp extends App {
 
-  val text =
-    """
-      | fun main() {
-      |   putChar(nextChar(65))
-      | }
-      |
-      | fun nextChar(someChar:Int):Int {
-      |   return someChar + 1
-      | }
-    """.stripMargin
+  def text: String
+  val defaultFile = "./src/test/tests_cucaracha/test01.input"
 
-  val target = System.getProperty("target")
+  val target = System.getProperty("target", "")
 
   val inputStream = if (target != "") {
     val fileStream = try {
       new FileInputStream(target)
     } catch {
       case e: FileNotFoundException =>
-        val default = "./src/test/tests_cucaracha/test01.input"
-        println(s"Unable to find file $target, defaulting to $default")
-        new FileInputStream(default)
+        println(s"Unable to find file $target, defaulting to $defaultFile")
+        new FileInputStream(defaultFile)
     }
     new ANTLRInputStream(fileStream)
   } else {
-    new ANTLRInputStream(text)
+    new ANTLRInputStream(text.stripMargin)
   }
 
   val lexer = new CucarachaGrammarLexer(inputStream)
@@ -51,18 +42,40 @@ class CucaApp extends App {
 }
 
 object Run extends CucaApp {
+  def text =
+    """
+      | fun main() {
+      |   putChar(nextChar(65))
+      | }
+      |
+      | fun nextChar(someChar:Int):Int {
+      |   return someChar + 1
+      | }
+    """
+
   ast.execute()
 }
 
 object Compile extends CucaApp {
-  implicit val enviroment: ExecutionEnviroment =
-    if(SystemUtils.IS_OS_WINDOWS)
-      WindowsEnviroment
-    else if(SystemUtils.IS_OS_UNIX)
-      UnixEnviroment
+  def text =
+    """
+      | fun main() {
+      |   putChar(65)
+      |   putNum(65)
+      |   asd()
+      | }
+      |
+      | fun asd() {
+      | }
+    """
+
+  val generator =
+    if (SystemUtils.IS_OS_WINDOWS)
+      new NasmGenerator with WindowsEnviroment
+    else if (SystemUtils.IS_OS_UNIX)
+      new NasmGenerator with UnixEnviroment
     else
       throw new RuntimeException("Unsuported operating system")
 
-  val generator = new NasmAssemblerGenerator
   println(generator.assemble(ast))
 }
