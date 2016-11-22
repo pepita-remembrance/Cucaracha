@@ -10,6 +10,7 @@ import org.apache.commons.lang3.SystemUtils
 abstract class CucaApp extends App {
 
   def text: String
+
   val defaultFile = "./src/test/tests_cucaracha/test01.input"
 
   val target = System.getProperty("target", "")
@@ -66,16 +67,18 @@ object Compile extends CucaApp {
       | }
       |
       | fun asd() {
+      |   a := 5
+      |   b := 6
       | }
     """
 
   val generator =
     if (SystemUtils.IS_OS_WINDOWS)
-      new NasmGenerator with WindowsEnviroment
+      new NasmGenerator(ast) with WindowsEnviroment
     else if (SystemUtils.IS_OS_UNIX)
-      new NasmGenerator with UnixEnviroment
+      new NasmGenerator(ast) with UnixEnviroment
     else
       throw new RuntimeException("Unsuported operating system")
 
-  println(generator.assemble(ast))
+  println(generator.generate.toText)
 }

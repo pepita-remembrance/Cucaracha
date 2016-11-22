@@ -1,41 +1,43 @@
 package ar.edu.unq.parse.tp1.assembler
 
-trait ExecutionEnviroment extends NasmGenerator{
+trait ExecutionEnviroment extends NasmGenerator {
 
-  def oldStackPointerReg = "rbp"
-  def stackPointerReg = "rsp"
-  def returnReg = "rax"
+  def oldStackPointerReg = Register("rbp")
+
+  def stackPointerReg = Register("rsp")
+
+  def returnReg = Register("rax")
 
   //First integer register
-  def reg1: String
+  def reg1: Register
 
   //Second integer register
-  def reg2: String
+  def reg2: Register
 
   //Third integer register
-  def reg3: String
+  def reg3: Register
 
   //Fourth integer register
-  def reg4: String
+  def reg4: Register
 
 }
 
 trait WindowsEnviroment extends ExecutionEnviroment {
-  def reg1: String = "rcx"
+  def reg1: Register = Register("rcx")
 
-  def reg2: String = "rdx"
+  def reg2: Register = Register("rdx")
 
-  def reg3: String = "r8"
+  def reg3: Register = Register("r8")
 
-  def reg4: String = "r9"
+  def reg4: Register = Register("r9")
 }
 
 trait UnixEnviroment extends ExecutionEnviroment {
-  def reg1: String = "rdi"
+  def reg1: Register = Register("rdi")
 
-  def reg2: String = "rsi"
+  def reg2: Register = Register("rsi")
 
-  def reg3: String = "rdx"
+  def reg3: Register = Register("rdx")
 
-  def reg4: String = "rcx"
+  def reg4: Register = Register("rcx")
 }

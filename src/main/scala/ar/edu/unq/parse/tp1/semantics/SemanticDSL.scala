@@ -1,5 +1,6 @@
 package ar.edu.unq.parse.tp1.semantics
 
+import ar.edu.unq.parse.tp1.Context
 import ar.edu.unq.parse.tp1.ast.CucaTypes.Type
 import ar.edu.unq.parse.tp1.ast.statements.{Statement, StmtReturn}
 import ar.edu.unq.parse.tp1.ast.{CucaFunction, Program}

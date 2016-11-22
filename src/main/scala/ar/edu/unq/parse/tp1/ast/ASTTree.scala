@@ -1,10 +1,10 @@
 package ar.edu.unq.parse.tp1.ast
 
-import ar.edu.unq.parse.tp1.{IndentableStringBuilder, PredefinedFunctions}
+import ar.edu.unq.parse.tp1.{Context, IndentableStringBuilder, PredefinedFunctions}
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
 import ar.edu.unq.parse.tp1.ast.expressions.Expression
 import ar.edu.unq.parse.tp1.ast.statements.{Statement, StmtReturn}
-import ar.edu.unq.parse.tp1.semantics.{Context, DefaultSemantics, SemanticChecker, TypeException}
+import ar.edu.unq.parse.tp1.semantics.{DefaultSemantics, SemanticChecker, TypeException}
 
 import scala.collection.mutable
 

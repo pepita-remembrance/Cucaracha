@@ -1,10 +1,10 @@
 package ar.edu.unq.parse.tp1.ast.statements
 
-import ar.edu.unq.parse.tp1.IndentableStringBuilder
+import ar.edu.unq.parse.tp1.{Context, IndentableStringBuilder}
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
 import ar.edu.unq.parse.tp1.ast.expressions.Expression
 import ar.edu.unq.parse.tp1.ast.{ASTTree, CucaFunction}
-import ar.edu.unq.parse.tp1.semantics.{Context, SemanticException}
+import ar.edu.unq.parse.tp1.semantics.SemanticException
 
 trait Statement extends ASTTree {
   def buildContext()(implicit programContext: Context[CucaFunction], localContext: Context[Type]): Unit

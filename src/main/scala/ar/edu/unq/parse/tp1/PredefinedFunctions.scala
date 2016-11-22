@@ -3,7 +3,6 @@ package ar.edu.unq.parse.tp1
 import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaInt, CucaUnit}
 import ar.edu.unq.parse.tp1.ast.statements.Statement
 import ar.edu.unq.parse.tp1.ast.{CucaFunction, Parameter}
-import ar.edu.unq.parse.tp1.semantics.Context
 
 
 object PredefinedFunctions {

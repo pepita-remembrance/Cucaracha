@@ -1,9 +1,9 @@
 package ar.edu.unq.parse.tp1.ast.expressions
 
-import ar.edu.unq.parse.tp1.IndentableStringBuilder
+import ar.edu.unq.parse.tp1.{Context, IndentableStringBuilder}
 import ar.edu.unq.parse.tp1.ast.CucaTypes._
 import ar.edu.unq.parse.tp1.ast.{ASTTree, CucaFunction}
-import ar.edu.unq.parse.tp1.semantics.{Context, SemanticException}
+import ar.edu.unq.parse.tp1.semantics.SemanticException
 
 import scala.collection.mutable
 

@@ -1,0 +1,105 @@
+package ar.edu.unq.parse.tp1.assembler
+
+import ar.edu.unq.parse.tp1.IndentableStringBuilder
+
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+
+class NasmProgram() {
+  val dataSection = mutable.HashMap("lli_format_string" -> "\"%lli\"")
+  val textSection = new TextSection(
+    globals = mutable.MutableList("main"),
+    externs = mutable.MutableList("exit", "putchar", "printf")
+  )
+
+  def toText: String = {
+    val builder = new IndentableStringBuilder("  ")
+    builder.appendln("section .data")
+    dataSection.foreach { case (key, value) => builder.appendln(s"$key db $value") }
+    builder.appendln("section .text")
+    textSection.toText(builder)
+    builder.toString
+  }
+}
+
+class TextSection(val globals: mutable.MutableList[String], val externs: mutable.MutableList[String]) {
+  val contents = ListBuffer.empty[NasmInstruction]
+
+  def toText(builder: IndentableStringBuilder) = {
+    builder
+      .appendln("global " ++ globals.mkString(", "))
+      .appendln("extern " ++ externs.mkString(", "))
+    contents.foreach(instruction => builder.appendln(instruction.toText))
+  }
+}
+
+
+/** ***************/
+/** *Instructions **/
+/** ***************/
+
+trait NasmInstruction {
+  def toText: String
+}
+
+case class Label(text: String) extends NasmInstruction {
+  def toText: String = s"$text:"
+}
+
+case class Push(register: Register) extends NasmInstruction {
+  def toText: String = s"push ${register.toText}"
+}
+
+case class Pop(register: Register) extends NasmInstruction {
+  def toText: String = s"pop ${register.toText}"
+}
+
+case class Mov(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
+  def toText: String = s"mov ${nasmAddress.toText}, ${nasmValue.toText}"
+}
+
+case class Call(funName: String) extends NasmInstruction {
+  def toText: String = s"call $funName"
+}
+
+case class Add(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
+  def toText: String = s"add ${nasmAddress.toText}, ${nasmValue.toText}"
+}
+
+case class Sub(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
+  def toText: String = s"sub ${nasmAddress.toText}, ${nasmValue.toText}"
+}
+
+object Ret extends NasmInstruction {
+  def toText: String = "ret"
+}
+
+/** ***************/
+/** *Values ********/
+/** ***************/
+
+trait NasmValue {
+  def toText: String
+}
+
+case class Constant(value: Int) extends NasmValue {
+  def toText: String = value.toString
+}
+
+case class Data(key: String) extends NasmValue {
+  def toText: String = key
+}
+
+trait NasmAddress extends NasmValue
+
+case class Register(name: String) extends NasmAddress {
+  def toText: String = name
+}
+
+case class IndirectAddress(register: Register, offset: Int) extends NasmAddress {
+  def toText: String = s"[${register.toText} ${if (offset < 0) s"+ $offset" else s"- ${Math.abs(offset)}"}]"
+}
+
+
+
+

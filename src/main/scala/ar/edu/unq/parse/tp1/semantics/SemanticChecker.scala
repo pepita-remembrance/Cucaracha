@@ -1,5 +1,6 @@
 package ar.edu.unq.parse.tp1.semantics
 
+import ar.edu.unq.parse.tp1.Context
 import ar.edu.unq.parse.tp1.PredefinedFunctions.{PutChar, PutNum}
 import ar.edu.unq.parse.tp1.ast.CucaTypes.{CucaUnit, CucaVec, Type}
 import ar.edu.unq.parse.tp1.ast.{CucaFunction, Program}
@@ -53,6 +54,4 @@ object DefaultSemantics extends SemanticChecker with SemanticDSL {
 
 }
 
-class Context[A](message: String => String) extends mutable.HashMap[String, A] {
-  override def apply(key: String): A = getOrElse(key, throw SemanticException(message(key)))
-}
+
