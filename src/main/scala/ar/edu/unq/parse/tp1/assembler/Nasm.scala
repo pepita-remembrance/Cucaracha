@@ -34,9 +34,9 @@ class TextSection(val globals: mutable.MutableList[String], val externs: mutable
 }
 
 
-/** ***************/
+/** ****************/
 /** *Instructions **/
-/** ***************/
+/** ****************/
 
 trait NasmInstruction {
   def toText: String
@@ -62,6 +62,18 @@ case class Call(funName: String) extends NasmInstruction {
   def toText: String = s"call $funName"
 }
 
+case class Not(nasmAddress: NasmAddress) extends NasmInstruction {
+  def toText: String = s"not ${nasmAddress.toText}"
+}
+
+case class And(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
+  def toText: String = s"and ${nasmAddress.toText}, ${nasmValue.toText}"
+}
+
+case class Or(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
+  def toText: String = s"and ${nasmAddress.toText}, ${nasmValue.toText}"
+}
+
 case class Add(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
   def toText: String = s"add ${nasmAddress.toText}, ${nasmValue.toText}"
 }
@@ -70,13 +82,17 @@ case class Sub(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstr
   def toText: String = s"sub ${nasmAddress.toText}, ${nasmValue.toText}"
 }
 
+case class Imul(nasmAddress: NasmAddress) extends NasmInstruction {
+  def toText: String = s"imul ${nasmAddress.toText}"
+}
+
 object Ret extends NasmInstruction {
   def toText: String = "ret"
 }
 
-/** ***************/
+/** ****************/
 /** *Values ********/
-/** ***************/
+/** ****************/
 
 trait NasmValue {
   def toText: String
@@ -97,7 +113,7 @@ case class Register(name: String) extends NasmAddress {
 }
 
 case class IndirectAddress(register: Register, offset: Int) extends NasmAddress {
-  def toText: String = s"[${register.toText} ${if (offset < 0) s"+ $offset" else s"- ${Math.abs(offset)}"}]"
+  def toText: String = s"[${register.toText} ${if (offset < 0) s"- ${Math.abs(offset)}" else s"+ $offset"}]"
 }
 
 

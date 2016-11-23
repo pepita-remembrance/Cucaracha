@@ -2,7 +2,7 @@ package ar.edu.unq.parse.tp1.assembler
 
 import ar.edu.unq.parse.tp1.Context
 import ar.edu.unq.parse.tp1.PredefinedFunctions.{PutChar, PutNum}
-import ar.edu.unq.parse.tp1.ast.expressions.{ExprConstNum, Expression}
+import ar.edu.unq.parse.tp1.ast.expressions._
 import ar.edu.unq.parse.tp1.ast.statements._
 import ar.edu.unq.parse.tp1.ast.{CucaFunction, Parameter, Program}
 
@@ -22,7 +22,7 @@ abstract class NasmGenerator(prog: Program) {
     contents.append(
       Label("main"),
       Call(s"${funPrefix}main"),
-      Mov(reg1, 0),
+      Mov(reserved1, 0),
       Call("exit")
     )
     program
@@ -31,13 +31,13 @@ abstract class NasmGenerator(prog: Program) {
   private def emptyBuffer = ListBuffer.empty[NasmInstruction]
 
   private def assemble(fun: NasmCucaFunction): Unit = {
-    implicit val variableContext = fun.variableContext
+    implicit val addressContext = fun.addressContext
     val assembledBody = fun.body.foldLeft(emptyBuffer)(assemble)
     contents.append(
       Label(fun.nasmName),
       Push(oldStackPointerReg),
       Mov(oldStackPointerReg, stackPointerReg),
-      Sub(oldStackPointerReg, 8 * fun.totalLocalVariables)
+      Sub(oldStackPointerReg, 8 * fun.stackVariables)
     )
     contents.appendAll(assembledBody)
     contents.append(
@@ -47,17 +47,24 @@ abstract class NasmGenerator(prog: Program) {
     )
   }
 
-  private def assemble(buffer: ListBuffer[NasmInstruction], stmt: Statement)(implicit variableContext: Context[NasmAddress]): ListBuffer[NasmInstruction] = {
+  private def assemble(buffer: ListBuffer[NasmInstruction], stmt: Statement)(implicit addressContext: AddressContext): ListBuffer[NasmInstruction] = {
     stmt match {
+      case StmtAssign(variable, value) => buffer.appendAll(assemble(value, addressContext(variable)))
+      case StmtVecAssign(name, index, value) => ???
+      case StmtIf(condition, branchTrue) => ???
+      case StmtIfElse(condition, branchTrue, branchFalse) => ???
+      case StmtWhile(condition, body) => ???
+      case StmtReturn(value) => buffer.appendAll(assemble(value, returnReg))
+      //Function Calls
       case StmtCall(PutNum.id, args) =>
-        buffer.appendAll(assemble(args.head, reg2))
+        buffer.appendAll(assemble(args.head, reserved2))
         buffer.append(
-          Mov(reg1, Data("lli_format_string")),
+          Mov(reserved1, Data("lli_format_string")),
           Mov(returnReg, 0),
           Call("printf")
         )
       case StmtCall(PutChar.id, args) =>
-        buffer.appendAll(assemble(args.head, reg1))
+        buffer.appendAll(assemble(args.head, reserved1))
         buffer.append(Call("putchar"))
       case StmtCall(name, args) =>
         buffer.append(Sub(stackPointerReg, 8 * args.size))
@@ -68,30 +75,117 @@ abstract class NasmGenerator(prog: Program) {
           Call(s"$funPrefix$name"),
           Add(stackPointerReg, 8 * args.size)
         )
-      case _ =>
     }
     buffer
   }
 
-  private def assemble(expr: Expression, position: NasmAddress)(implicit variableContext: Context[NasmAddress]): Seq[NasmInstruction] = expr match {
-    case ExprConstNum(value) => List(Mov(position, value))
+  //Ojo que la posicion no sea un registro "usable"!
+  private def assemble(expr: Expression, position: NasmAddress)(implicit addressContext: AddressContext): Seq[NasmInstruction] = {
+    addressContext.resetTempVars()
+    assembleRecursive(expr, position)
+  }
+
+  private def assembleRecursive(expr: Expression, position: NasmAddress)(implicit addressContext: AddressContext): Seq[NasmInstruction] =
+    expr match {
+      //Constants
+      case ExprConstNum(value) => List(Mov(reserved3, value), Mov(position, reserved3))
+      case ExprConstBool(value) => List(Mov(reserved3, if (value) -1 else 0), Mov(position, reserved3))
+      //Logic
+      case ExprNot(expression) => assembleRecursive(expression, position) :+ Not(position)
+      case ExprAnd(expr1, expr2) =>
+        val temp = addressContext.tempVar
+        assembleRecursive(expr1, position) ++ assembleRecursive(expr2, temp) :+ And(position, temp)
+      case ExprOr(expr1, expr2) =>
+        val temp = addressContext.tempVar
+        assembleRecursive(expr1, position) ++ assembleRecursive(expr2, temp) :+ Or(position, temp)
+      //Math
+      case ExprAdd(expr1, expr2) =>
+        val temp = addressContext.tempVar
+        assembleRecursive(expr1, position) ++ assembleRecursive(expr2, temp) :+ Add(position, temp)
+      case ExprSub(expr1, expr2) =>
+        val temp = addressContext.tempVar
+        assembleRecursive(expr1, position) ++ assembleRecursive(expr2, temp) :+ Sub(position, temp)
+      case ExprMul(expr1, expr2) =>
+        val temp = addressContext.tempVar
+        assembleRecursive(expr1, temp) ++ assembleRecursive(expr2, returnReg) :+ Imul(temp) :+ Mov(position, returnReg)
+      //Compare
+      case ExprLe(expr1, expr2) => ???
+      case ExprGe(expr1, expr2) => ???
+      case ExprLt(expr1, expr2) => ???
+      case ExprGt(expr1, expr2) => ???
+      case ExprEq(expr1, expr2) => ???
+      case ExprNe(expr1, expr2) => ???
+      //Vector
+      case ExprVecMake(expressions) => ???
+      case ExprVecLength(vecName) => ???
+      case ExprVecDeref(vecName, index) => ???
+      //Call
+      case ExprCall(name, args) => ???
+      //Variable
+      case ExprVar(name) => List(Mov(position, addressContext(name)))
+    }
+
+  implicit def intToNasmConstant(n: Int): Constant = Constant(n)
+
+  class AddressContext extends Context[NasmAddress](varName => s"Attempt to access undefined variable: $varName") {
+    var vars = 0
+    var tempVars = 0
+    var maxTempVars = 0
+    var freeRegisters = usableRegisters
+    var usedRegisters = List.empty[NasmAddress]
+
+    def stackVariables = vars + maxTempVars
+
+    def parameter = this
+
+    def variable = {
+      vars += 1
+      this
+    }
+
+    def tempVar: NasmAddress = {
+      if (freeRegisters.isEmpty) {
+        tempVars += 1
+        if (tempVars > maxTempVars) {
+          val newVarName = s"${funPrefix}temp_var_${maxTempVars.toString}"
+          val newVarAddress = IndirectAddress(oldStackPointerReg, -8 * (stackVariables + 1))
+          this (newVarName) = newVarAddress
+          maxTempVars += 1
+          newVarAddress
+        } else {
+          this (s"${funPrefix}temp_var_${(tempVars - 1).toString}")
+        }
+      } else {
+        val register = freeRegisters.head
+        freeRegisters = freeRegisters.tail
+        usedRegisters = register :: usedRegisters
+        register
+      }
+    }
+
+    def resetTempVars() = {
+      freeRegisters = usableRegisters
+      usedRegisters = List.empty[NasmAddress]
+      tempVars = 0
+    }
+
   }
 
   implicit class NasmCucaFunction(fun: CucaFunction) {
     def nasmName = funPrefix ++ fun.id.toLowerCase
 
-    def totalLocalVariables = allAssignements().map(_.id).distinct.size
+    def stackVariables = addressContext.stackVariables
 
     def body = fun.body
 
-    lazy val variableContext: Context[NasmAddress] = {
-      val context = new Context[NasmAddress](varName => s"Variable $varName is undefined")
+    lazy val addressContext: AddressContext = {
+      val context = new AddressContext
       fun.params.zipWithIndex.foreach {
-        case (Parameter(name, _), i) => context(name) = IndirectAddress(oldStackPointerReg, 8 * (i + 1))
+        case (Parameter(name, _), i) => context.parameter(name) = IndirectAddress(oldStackPointerReg, 8 * (i + 2))
       }
-      val localVariables = allAssignements().map(_.id).distinct
+      val localVariables = allAssignements().map(_.id).diff(fun.params.map(_.id)).distinct
       localVariables.zipWithIndex.foreach {
-        case (variable, i) => context(variable) = IndirectAddress(oldStackPointerReg, -8 * i)
+        case (name, i) => context.variable(name) = IndirectAddress(oldStackPointerReg, -8 * (i + 1))
       }
       context
     }
@@ -116,7 +210,5 @@ abstract class NasmGenerator(prog: Program) {
 
     def allAssignements() = allStatementsIn[StmtAssign](fun.body)
   }
-
-  implicit def intToNasmConstant(n: Int): Constant = Constant(n)
 
 }

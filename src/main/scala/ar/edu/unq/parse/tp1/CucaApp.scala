@@ -61,14 +61,13 @@ object Compile extends CucaApp {
   def text =
     """
       | fun main() {
-      |   putChar(65)
-      |   putNum(65)
-      |   asd()
+      |   asd(32*2)
       | }
       |
-      | fun asd() {
-      |   a := 5
-      |   b := 6
+      | fun asd(n:Int) {
+      |   putChar(n)
+      |   n := n * 2
+      |   putChar(n)
       | }
     """
 
