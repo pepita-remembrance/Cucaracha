@@ -46,16 +46,26 @@ case class Label(text: String) extends NasmInstruction {
   def toText: String = s"$text:"
 }
 
-case class Push(register: Register) extends NasmInstruction {
-  def toText: String = s"push ${register.toText}"
+case class Push(nasmAddress: NasmAddress) extends NasmInstruction {
+  def toText: String = nasmAddress match {
+//    case _:IndirectAddress => s"push qword ${nasmAddress.toText}"
+    case _ => s"push ${nasmAddress.toText}"
+  }
 }
 
-case class Pop(register: Register) extends NasmInstruction {
-  def toText: String = s"pop ${register.toText}"
+case class Pop(nasmAddress: NasmAddress) extends NasmInstruction {
+  def toText: String = nasmAddress match {
+//    case _:IndirectAddress => s"pop qword ${nasmAddress.toText}"
+    case _ => s"pop ${nasmAddress.toText}"
+  }
 }
 
 case class Mov(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
-  def toText: String = s"mov ${nasmAddress.toText}, ${nasmValue.toText}"
+  def toText: String = (nasmAddress, nasmValue) match {
+//    case (_: IndirectAddress, _: Constant) => s"mov qword ${nasmAddress.toText}, ${nasmValue.toText}"
+//    case (_: IndirectAddress, _: IndirectAddress) => s"mov qword ${nasmAddress.toText}, qword ${nasmValue.toText}"
+    case _ => s"mov ${nasmAddress.toText}, ${nasmValue.toText}"
+  }
 }
 
 case class Call(funName: String) extends NasmInstruction {
@@ -113,7 +123,7 @@ case class Register(name: String) extends NasmAddress {
 }
 
 case class IndirectAddress(register: Register, offset: Int) extends NasmAddress {
-  def toText: String = s"[${register.toText} ${if (offset < 0) s"- ${Math.abs(offset)}" else s"+ $offset"}]"
+  def toText: String = s"qword [${register.toText} ${if (offset < 0) s"- ${Math.abs(offset)}" else s"+ $offset"}]"
 }
 
 

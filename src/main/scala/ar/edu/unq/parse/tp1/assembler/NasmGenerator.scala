@@ -36,12 +36,12 @@ abstract class NasmGenerator(prog: Program) {
     contents.append(
       Label(fun.nasmName),
       Push(oldStackPointerReg),
-      Mov(oldStackPointerReg, stackPointerReg),
-      Sub(oldStackPointerReg, 8 * fun.stackVariables)
+      Mov(oldStackPointerReg, stackPointerReg)
     )
+    if (fun.stackVariables != 0) contents.append(Sub(stackPointerReg, 8 * fun.stackVariables))
     contents.appendAll(assembledBody)
+    if (fun.stackVariables != 0) contents.append(Mov(stackPointerReg, oldStackPointerReg))
     contents.append(
-      Mov(oldStackPointerReg, stackPointerReg),
       Pop(oldStackPointerReg),
       Ret
     )
@@ -67,14 +67,12 @@ abstract class NasmGenerator(prog: Program) {
         buffer.appendAll(assemble(args.head, reserved1))
         buffer.append(Call("putchar"))
       case StmtCall(name, args) =>
-        buffer.append(Sub(stackPointerReg, 8 * args.size))
+        if (args.nonEmpty) buffer.append(Sub(stackPointerReg, 8 * args.size))
         args.zipWithIndex.foreach {
           case (expr, i) => buffer.appendAll(assemble(expr, IndirectAddress(stackPointerReg, 8 * i)))
         }
-        buffer.append(
-          Call(s"$funPrefix$name"),
-          Add(stackPointerReg, 8 * args.size)
-        )
+        buffer.append(Call(s"$funPrefix$name"))
+        if (args.nonEmpty) buffer.append(Add(stackPointerReg, 8 * args.size))
     }
     buffer
   }
@@ -88,8 +86,8 @@ abstract class NasmGenerator(prog: Program) {
   private def assembleRecursive(expr: Expression, position: NasmAddress)(implicit addressContext: AddressContext): Seq[NasmInstruction] =
     expr match {
       //Constants
-      case ExprConstNum(value) => List(Mov(reserved3, value), Mov(position, reserved3))
-      case ExprConstBool(value) => List(Mov(reserved3, if (value) -1 else 0), Mov(position, reserved3))
+      case ExprConstNum(value) => List(Mov(position, value))
+      case ExprConstBool(value) => List(Mov(position, if (value) -1 else 0))
       //Logic
       case ExprNot(expression) => assembleRecursive(expression, position) :+ Not(position)
       case ExprAnd(expr1, expr2) =>
@@ -122,7 +120,10 @@ abstract class NasmGenerator(prog: Program) {
       //Call
       case ExprCall(name, args) => ???
       //Variable
-      case ExprVar(name) => List(Mov(position, addressContext(name)))
+      case ExprVar(name) => position match {
+        case _: IndirectAddress => List(Push(addressContext(name)), Pop(position))
+        case _: Register => List(Mov(position, addressContext(name)))
+      }
     }
 
   implicit def intToNasmConstant(n: Int): Constant = Constant(n)
