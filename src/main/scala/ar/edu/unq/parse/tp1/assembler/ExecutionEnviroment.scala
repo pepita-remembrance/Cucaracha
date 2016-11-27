@@ -30,9 +30,9 @@ trait ExecutionEnviroment extends NasmGenerator {
   //Sixth integer register
   def reserved6: Register
 
-  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction]
+  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction]
 
-  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction]
+  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction]
 
 }
 
@@ -51,7 +51,7 @@ trait WindowsEnviroment extends ExecutionEnviroment {
 
   override def usableRegisters = Register("rbx") :: Register("rdi") :: Register("rsi") :: super.usableRegisters
 
-  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction] =
+  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] =
     Sub(stackPointerReg, 32) ::
       assemble(value, reserved2) ++
         List(
@@ -61,7 +61,7 @@ trait WindowsEnviroment extends ExecutionEnviroment {
           Add(stackPointerReg, 32)
         )
 
-  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction] =
+  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] =
     (Sub(stackPointerReg, 32) ::
       assemble(value, reserved1)) ++
       List(
@@ -86,7 +86,7 @@ trait UnixEnviroment extends ExecutionEnviroment {
 
   override def usableRegisters = Register("r10") :: Register("r11") :: super.usableRegisters
 
-  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction] =
+  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] =
     assemble(value, reserved2) ++
       List(
         Mov(reserved1, Data("lli_format_string")),
@@ -95,7 +95,7 @@ trait UnixEnviroment extends ExecutionEnviroment {
       )
 
 
-  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction] =
+  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] =
     assemble(value, reserved1) :+ Call("putchar")
 
 }

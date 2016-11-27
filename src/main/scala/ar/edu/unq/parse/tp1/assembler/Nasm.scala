@@ -42,28 +42,45 @@ trait NasmInstruction {
   def toText: String
 }
 
-case class Label(text: String) extends NasmInstruction {
+abstract class Label(text: String) extends NasmInstruction {
+  private var subLabels = 0
+
+  def newSubLabel = {
+    subLabels += 1
+    LocalLabel(text, subLabels)
+  }
+
+  def toText: String
+
+  def toJumpLabel: String
+}
+
+case class RootLabel(text: String) extends Label(text) {
   def toText: String = s"$text:"
+
+  def toJumpLabel: String = text
+}
+
+case class LocalLabel(text: String, n: Int) extends Label(s"${text}_$n") {
+  def toText: String = s".${text}_$n:"
+
+  def toJumpLabel: String = s".${text}_$n"
 }
 
 case class Push(nasmAddress: NasmAddress) extends NasmInstruction {
   def toText: String = nasmAddress match {
-//    case _:IndirectAddress => s"push qword ${nasmAddress.toText}"
     case _ => s"push ${nasmAddress.toText}"
   }
 }
 
 case class Pop(nasmAddress: NasmAddress) extends NasmInstruction {
   def toText: String = nasmAddress match {
-//    case _:IndirectAddress => s"pop qword ${nasmAddress.toText}"
     case _ => s"pop ${nasmAddress.toText}"
   }
 }
 
 case class Mov(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
   def toText: String = (nasmAddress, nasmValue) match {
-//    case (_: IndirectAddress, _: Constant) => s"mov qword ${nasmAddress.toText}, ${nasmValue.toText}"
-//    case (_: IndirectAddress, _: IndirectAddress) => s"mov qword ${nasmAddress.toText}, qword ${nasmValue.toText}"
     case _ => s"mov ${nasmAddress.toText}, ${nasmValue.toText}"
   }
 }
@@ -95,6 +112,28 @@ case class Sub(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstr
 case class Imul(nasmAddress: NasmAddress) extends NasmInstruction {
   def toText: String = s"imul ${nasmAddress.toText}"
 }
+
+case class Cmp(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
+  def toText: String = s"cmp ${nasmAddress.toText}, ${nasmValue.toText}"
+}
+
+class NasmJump(prefix: String, label: Label) extends NasmInstruction {
+  def toText: String = s"$prefix ${label.toJumpLabel}"
+}
+
+case class Jump(label: Label) extends NasmJump("jmp", label)
+
+case class JumpLe(label: Label) extends NasmJump("jle", label)
+
+case class JumpGe(label: Label) extends NasmJump("jge", label)
+
+case class JumpLt(label: Label) extends NasmJump("jl", label)
+
+case class JumpGt(label: Label) extends NasmJump("jg", label)
+
+case class JumpEq(label: Label) extends NasmJump("je", label)
+
+case class JumpNe(label: Label) extends NasmJump("jne", label)
 
 object Ret extends NasmInstruction {
   def toText: String = "ret"

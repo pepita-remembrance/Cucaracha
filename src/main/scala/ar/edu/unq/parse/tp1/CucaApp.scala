@@ -61,17 +61,8 @@ object Compile extends CucaApp {
   def text =
     """
       | fun main() {
-      |   n := 100
-      |   show(const(2 - n + 5 * 2 * 2 - 10 + 15 - 5 + n + 2 * n - n - n))
-      | }
-      |
-      | fun const(n:Int):Int {   //22
-      |   return 2 - n + 5 * 2 * 2 - 10 + 15 - 5 + n
-      | }
-      |
-      | fun show(n: Int):Int {
-      |   putNum(n)
-      |   return n
+      |   n := 100 <= 50
+      |   putNum(1)
       | }
     """
 
