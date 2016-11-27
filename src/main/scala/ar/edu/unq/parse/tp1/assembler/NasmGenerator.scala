@@ -48,13 +48,43 @@ abstract class NasmGenerator(prog: Program) {
     )
   }
 
-  private def assemble(buffer: ListBuffer[NasmInstruction], stmt: Statement)(implicit addressContext: AddressContext, rootLabel: RootLabel): ListBuffer[NasmInstruction] = {
+  private def assemble(buffer: ListBuffer[NasmInstruction], stmt: Statement)(implicit addressContext: AddressContext, rootLabel: Label): ListBuffer[NasmInstruction] = {
     stmt match {
       case StmtAssign(variable, value) => buffer.appendAll(assemble(value, addressContext(variable)))
       case StmtVecAssign(name, index, value) => ???
-      case StmtIf(condition, branchTrue) => ???
-      case StmtIfElse(condition, branchTrue, branchFalse) => ???
-      case StmtWhile(condition, body) => ???
+      case s: StatementIf =>
+        val falseLabel = rootLabel.newSubLabel
+        val endLabel = rootLabel.newSubLabel
+        val temp = addressContext.tempVar
+        buffer.appendAll(assemble(s.condition, temp))
+        buffer.append(
+          Cmp(temp, 0),
+          JumpEq(falseLabel)
+        )
+        addressContext.released(temp)
+        s.branchTrue.foldLeft(buffer)(assemble)
+        buffer.append(
+          Jump(endLabel),
+          falseLabel
+        )
+        s.branchFalse.foldLeft(buffer)(assemble)
+        buffer.append(endLabel)
+      case StmtWhile(condition, body) =>
+        val beginLabel = rootLabel.newSubLabel
+        val endLabel = rootLabel.newSubLabel
+        val temp = addressContext.tempVar
+        buffer.append(beginLabel)
+        buffer.appendAll(assemble(condition, temp))
+        buffer.append(
+          Cmp(temp, 0),
+          JumpEq(endLabel)
+        )
+        addressContext.released(temp)
+        body.foldLeft(buffer)(assemble)
+        buffer.append(
+          Jump(beginLabel),
+          endLabel
+        )
       case StmtReturn(value) => buffer.appendAll(assemble(value, returnReg))
       //Function Calls
       case StmtCall(PutNum.id, args) => buffer.appendAll(assemblePutNum(args.head))
@@ -81,22 +111,22 @@ abstract class NasmGenerator(prog: Program) {
       case v :: vs => (Push(v) :: protectTempVars(code, vs)) :+ Pop(v)
     }
 
-  private def assembleBinaryExpr(expr1: Expression, expr2: Expression, finalPosition: NasmAddress, usedTempVars: List[NasmAddress], extraCode: NasmAddress => List[NasmInstruction])(implicit addressContext: AddressContext, rootLabel: Label): (List[NasmInstruction], List[NasmAddress]) = {
+  private def assembleBinaryExpr(expr1: Expression, expr2: Expression, finalPosition: NasmAddress, extraCode: NasmAddress => List[NasmInstruction])(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] = {
     val temp = addressContext.tempVar
     val memOp = (temp, finalPosition) match {
       case (_: IndirectAddress, _: IndirectAddress) => address: NasmAddress => Mov(reserved1, address) :: extraCode(reserved1)
       case _ => extraCode
     }
-    val (code1, usedTempVars1) = assembleRecursive(expr1, temp, usedTempVars)
-    val (code2, usedTempVars2) = assembleRecursive(expr2, finalPosition, temp :: usedTempVars1)
+    val code1 = assemble(expr1, temp)
+    val code2 = assemble(expr2, finalPosition)
     addressContext.released(temp)
-    (code1 ++ code2 ++ memOp(temp), usedTempVars1)
+    code1 ++ code2 ++ memOp(temp)
   }
 
-  private def assembleCmp(expr1: Expression, expr2: Expression, finalPosition: NasmAddress, usedTempVars: List[NasmAddress], jump: Label => NasmJump)(implicit addressContext: AddressContext, rootLabel: Label): (List[NasmInstruction], List[NasmAddress]) = {
+  private def assembleCmp(expr1: Expression, expr2: Expression, finalPosition: NasmAddress, jump: Label => NasmJump)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction]= {
     val trueLabel = rootLabel.newSubLabel
     val endLabel = rootLabel.newSubLabel
-    assembleBinaryExpr(expr1, expr2, finalPosition, usedTempVars, temp => List(
+    assembleBinaryExpr(expr1, expr2, finalPosition, temp => List(
       Cmp(temp, finalPosition),
       jump(trueLabel),
       Mov(finalPosition, 0),
@@ -107,55 +137,49 @@ abstract class NasmGenerator(prog: Program) {
     ))
   }
 
-  protected[this] def assemble(expr: Expression, position: NasmAddress)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] = {
-    addressContext.resetTempVars()
-    assembleRecursive(expr, position, List.empty[NasmAddress])._1
-  }
-
-  private def assembleRecursive(expr: Expression, position: NasmAddress, usedTempVars: List[NasmAddress])(implicit addressContext: AddressContext, rootLabel: Label): (List[NasmInstruction], List[NasmAddress]) =
+  protected[this] def assemble(expr: Expression, position: NasmAddress)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] =
     expr match {
       //Constants
-      case ExprConstNum(value) => (List(Mov(position, value)), usedTempVars)
-      case ExprConstBool(value) => (List(Mov(position, if (value) -1 else 0)), usedTempVars)
+      case ExprConstNum(value) => List(Mov(position, value))
+      case ExprConstBool(value) => List(Mov(position, if (value) -1 else 0))
       //Logic
       case ExprNot(expression) =>
-        val (code, usedTempVars2) = assembleRecursive(expression, position, usedTempVars)
-        (code :+ Not(position), usedTempVars2)
+          assemble(expression, position) :+ Not(position)
       case ExprAnd(expr1, expr2) =>
-        assembleBinaryExpr(expr1, expr2, position, usedTempVars, temp => List(And(position, temp)))
+        assembleBinaryExpr(expr1, expr2, position, temp => List(And(position, temp)))
       case ExprOr(expr1, expr2) =>
-        assembleBinaryExpr(expr1, expr2, position, usedTempVars, temp => List(Or(position, temp)))
+        assembleBinaryExpr(expr1, expr2, position, temp => List(Or(position, temp)))
       //Math
       case ExprAdd(expr1, expr2) =>
-        assembleBinaryExpr(expr1, expr2, position, usedTempVars, temp => List(Add(position, temp)))
+        assembleBinaryExpr(expr1, expr2, position, temp => List(Add(position, temp)))
       case ExprSub(expr1, expr2) =>
-        assembleBinaryExpr(expr1, expr2, position, usedTempVars, temp => List(Sub(temp, position), Mov(position, temp)))
+        assembleBinaryExpr(expr1, expr2, position, temp => List(Sub(temp, position), Mov(position, temp)))
       case ExprMul(expr1, expr2) =>
-        assembleBinaryExpr(expr1, expr2, returnReg, usedTempVars, temp => List(Imul(temp), Mov(position, returnReg)))
+        assembleBinaryExpr(expr1, expr2, returnReg, temp => List(Imul(temp), Mov(position, returnReg)))
       //Compare
       case ExprLe(expr1, expr2) =>
-        assembleCmp(expr1, expr2, position, usedTempVars, JumpLe)
+        assembleCmp(expr1, expr2, position, JumpLe)
       case ExprGe(expr1, expr2) =>
-        assembleCmp(expr1, expr2, position, usedTempVars, JumpGe)
+        assembleCmp(expr1, expr2, position, JumpGe)
       case ExprLt(expr1, expr2) =>
-        assembleCmp(expr1, expr2, position, usedTempVars, JumpLt)
+        assembleCmp(expr1, expr2, position, JumpLt)
       case ExprGt(expr1, expr2) =>
-        assembleCmp(expr1, expr2, position, usedTempVars, JumpGt)
+        assembleCmp(expr1, expr2, position, JumpGt)
       case ExprEq(expr1, expr2) =>
-        assembleCmp(expr1, expr2, position, usedTempVars, JumpEq)
+        assembleCmp(expr1, expr2, position, JumpEq)
       case ExprNe(expr1, expr2) =>
-        assembleCmp(expr1, expr2, position, usedTempVars, JumpNe)
+        assembleCmp(expr1, expr2, position, JumpNe)
       //Vector
       case ExprVecMake(expressions) => ???
       case ExprVecLength(vecName) => ???
       case ExprVecDeref(vecName, index) => ???
       //Call
       case ExprCall(name, args) =>
-        (protectTempVars(assembleCucaCall(name, args) :+ Mov(position, returnReg), usedTempVars), usedTempVars)
+        protectTempVars(assembleCucaCall(name, args) :+ Mov(position, returnReg), addressContext.usedRegisters.filterNot(_ == position))
       //Variable
       case ExprVar(name) => position match {
-        case _: IndirectAddress => (List(Push(addressContext(name)), Pop(position)), usedTempVars)
-        case _: Register => (List(Mov(position, addressContext(name))), usedTempVars)
+        case _: IndirectAddress => List(Push(addressContext(name)), Pop(position))
+        case _: Register => List(Mov(position, addressContext(name)))
       }
     }
 
@@ -166,6 +190,7 @@ abstract class NasmGenerator(prog: Program) {
     var tempVars = 0
     var maxTempVars = 0
     var freeRegisters = usableRegisters
+    var usedRegisters = List.empty[Register]
 
     def stackVariables = vars + maxTempVars
 
@@ -191,17 +216,15 @@ abstract class NasmGenerator(prog: Program) {
       } else {
         val register = freeRegisters.head
         freeRegisters = freeRegisters.tail
+        usedRegisters = register :: usedRegisters
         register
       }
     }
 
-    def resetTempVars() = {
-      freeRegisters = usableRegisters
-      tempVars = 0
-    }
-
     def released(tempVar: NasmAddress) = tempVar match {
-      case r: Register => freeRegisters = r :: freeRegisters
+      case r: Register =>
+        freeRegisters = r :: freeRegisters
+        usedRegisters = usedRegisters.filterNot(_ == r)
       case address: IndirectAddress => tempVars -= 1
     }
 

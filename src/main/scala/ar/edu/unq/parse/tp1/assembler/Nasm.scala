@@ -98,7 +98,7 @@ case class And(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstr
 }
 
 case class Or(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {
-  def toText: String = s"and ${nasmAddress.toText}, ${nasmValue.toText}"
+  def toText: String = s"or ${nasmAddress.toText}, ${nasmValue.toText}"
 }
 
 case class Add(nasmAddress: NasmAddress, nasmValue: NasmValue) extends NasmInstruction {

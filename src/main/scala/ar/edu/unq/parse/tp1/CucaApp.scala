@@ -61,8 +61,25 @@ object Compile extends CucaApp {
   def text =
     """
       | fun main() {
-      |   n := 100 <= 50
-      |   putNum(1)
+      |   from := 0
+      |   to := 127
+      |   while from <= to {
+      |     show(from)
+      |     from := from + 1
+      |   }
+      | }
+      |
+      | fun show(n: Int) {
+      |   if n <= 32 {
+      |     putNum(n)
+      |   } else {
+      |     if n <= 255 {
+      |       putChar(n)
+      |       putChar(32)
+      |     }
+      |     putNum(n)
+      |   }
+      |   putChar(10)
       | }
     """
 
