@@ -1,5 +1,7 @@
 package ar.edu.unq.parse.tp1.assembler
 
+import ar.edu.unq.parse.tp1.ast.expressions.Expression
+
 trait ExecutionEnviroment extends NasmGenerator {
 
   def oldStackPointerReg = Register("rbp")
@@ -28,6 +30,10 @@ trait ExecutionEnviroment extends NasmGenerator {
   //Sixth integer register
   def reserved6: Register
 
+  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction]
+
+  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction]
+
 }
 
 trait WindowsEnviroment extends ExecutionEnviroment {
@@ -44,6 +50,25 @@ trait WindowsEnviroment extends ExecutionEnviroment {
   def reserved6: Register = Register("r11")
 
   override def usableRegisters = Register("rbx") :: Register("rdi") :: Register("rsi") :: super.usableRegisters
+
+  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction] =
+    Sub(stackPointerReg, 32) ::
+      assemble(value, reserved2) ++
+        List(
+          Mov(reserved1, Data("lli_format_string")),
+          Mov(returnReg, 0),
+          Call("printf"),
+          Add(stackPointerReg, 32)
+        )
+
+  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction] =
+    (Sub(stackPointerReg, 32) ::
+      assemble(value, reserved1)) ++
+      List(
+        Call("putchar"),
+        Add(stackPointerReg, 32)
+      )
+
 }
 
 trait UnixEnviroment extends ExecutionEnviroment {
@@ -60,4 +85,17 @@ trait UnixEnviroment extends ExecutionEnviroment {
   def reserved6: Register = Register("r9")
 
   override def usableRegisters = Register("r10") :: Register("r11") :: super.usableRegisters
+
+  def assemblePutNum(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction] =
+    assemble(value, reserved2) ++
+      List(
+        Mov(reserved1, Data("lli_format_string")),
+        Mov(returnReg, 0),
+        Call("printf")
+      )
+
+
+  def assemblePutChar(value: Expression)(implicit addressContext: AddressContext): List[NasmInstruction] =
+    assemble(value, reserved1) :+ Call("putchar")
+
 }
