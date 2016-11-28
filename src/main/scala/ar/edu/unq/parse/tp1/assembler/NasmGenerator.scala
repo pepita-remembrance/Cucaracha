@@ -50,18 +50,38 @@ abstract class NasmGenerator(prog: Program) {
 
   private def assemble(buffer: ListBuffer[NasmInstruction], stmt: Statement)(implicit addressContext: AddressContext, rootLabel: Label): ListBuffer[NasmInstruction] = {
     stmt match {
-      case StmtAssign(variable, value) => buffer.appendAll(assemble(value, addressContext(variable)))
-      case StmtVecAssign(name, index, value) => ???
+      case StmtAssign(variable, valueExpr) => buffer.appendAll(assemble(valueExpr, addressContext(variable)))
+      case StmtVecAssign(vecName, indexExpr, valueExpr) =>
+        val temp1 = addressContext.tempVar
+        val temp2 = addressContext.tempVar
+        buffer.appendAll(assemble(indexExpr, temp1))
+        buffer.appendAll(assemble(valueExpr, temp2))
+        addressContext.released(temp2)
+        addressContext.released(temp1)
+        buffer.append(
+          Mov(returnReg, temp1),
+          Add(returnReg, 1),
+          Mov(temp1, 8),
+          Imul(temp1),
+          Add(returnReg, addressContext(vecName))
+        )
+        temp2 match {
+          case _: Register => buffer.append(Mov(IndirectAddress(returnReg, 0), temp2))
+          case _: IndirectAddress => buffer.append(
+            Push(temp2),
+            Pop(IndirectAddress(returnReg, 0))
+          )
+        }
       case s: StatementIf =>
         val falseLabel = rootLabel.newSubLabel
         val endLabel = rootLabel.newSubLabel
         val temp = addressContext.tempVar
         buffer.appendAll(assemble(s.condition, temp))
+        addressContext.released(temp)
         buffer.append(
           Cmp(temp, 0),
           JumpEq(falseLabel)
         )
-        addressContext.released(temp)
         s.branchTrue.foldLeft(buffer)(assemble)
         buffer.append(
           Jump(endLabel),
@@ -69,27 +89,27 @@ abstract class NasmGenerator(prog: Program) {
         )
         s.branchFalse.foldLeft(buffer)(assemble)
         buffer.append(endLabel)
-      case StmtWhile(condition, body) =>
+      case StmtWhile(conditionExpr, body) =>
         val beginLabel = rootLabel.newSubLabel
         val endLabel = rootLabel.newSubLabel
         val temp = addressContext.tempVar
         buffer.append(beginLabel)
-        buffer.appendAll(assemble(condition, temp))
+        buffer.appendAll(assemble(conditionExpr, temp))
+        addressContext.released(temp)
         buffer.append(
           Cmp(temp, 0),
           JumpEq(endLabel)
         )
-        addressContext.released(temp)
         body.foldLeft(buffer)(assemble)
         buffer.append(
           Jump(beginLabel),
           endLabel
         )
-      case StmtReturn(value) => buffer.appendAll(assemble(value, returnReg))
+      case StmtReturn(valueExpr) => buffer.appendAll(assemble(valueExpr, returnReg))
       //Function Calls
-      case StmtCall(PutNum.id, args) => buffer.appendAll(assemblePutNum(args.head))
-      case StmtCall(PutChar.id, args) => buffer.appendAll(assemblePutChar(args.head))
-      case StmtCall(name, args) => buffer.appendAll(assembleCucaCall(name, args))
+      case StmtCall(PutNum.id, argsExprs) => buffer.appendAll(assemblePutNum(argsExprs.head))
+      case StmtCall(PutChar.id, argsExprs) => buffer.appendAll(assemblePutChar(argsExprs.head))
+      case StmtCall(name, argsExprs) => buffer.appendAll(assembleCucaCall(name, argsExprs))
     }
     buffer
   }

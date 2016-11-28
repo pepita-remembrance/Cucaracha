@@ -62,6 +62,7 @@ object Compile extends CucaApp {
     """
       | fun main() {
       |   vec := [65, 66, 67, 68]
+      |   vec[2] := 64
       |   show(vec[1+1])
       | }
       |
