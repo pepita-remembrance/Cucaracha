@@ -61,12 +61,8 @@ object Compile extends CucaApp {
   def text =
     """
       | fun main() {
-      |   from := 0
-      |   to := 127
-      |   while from <= to {
-      |     show(from)
-      |     from := from + 1
-      |   }
+      |   vec := [65, 66, 67, 68]
+      |   show(vec[1+1])
       | }
       |
       | fun show(n: Int) {

@@ -123,7 +123,7 @@ abstract class NasmGenerator(prog: Program) {
     code1 ++ code2 ++ memOp(temp)
   }
 
-  private def assembleCmp(expr1: Expression, expr2: Expression, finalPosition: NasmAddress, jump: Label => NasmJump)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction]= {
+  private def assembleCmp(expr1: Expression, expr2: Expression, finalPosition: NasmAddress, jump: Label => NasmJump)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] = {
     val trueLabel = rootLabel.newSubLabel
     val endLabel = rootLabel.newSubLabel
     assembleBinaryExpr(expr1, expr2, finalPosition, temp => List(
@@ -144,7 +144,7 @@ abstract class NasmGenerator(prog: Program) {
       case ExprConstBool(value) => List(Mov(position, if (value) -1 else 0))
       //Logic
       case ExprNot(expression) =>
-          assemble(expression, position) :+ Not(position)
+        assemble(expression, position) :+ Not(position)
       case ExprAnd(expr1, expr2) =>
         assembleBinaryExpr(expr1, expr2, position, temp => List(And(position, temp)))
       case ExprOr(expr1, expr2) =>
@@ -170,9 +170,38 @@ abstract class NasmGenerator(prog: Program) {
       case ExprNe(expr1, expr2) =>
         assembleCmp(expr1, expr2, position, JumpNe)
       //Vector
-      case ExprVecMake(expressions) => ???
-      case ExprVecLength(vecName) => ???
-      case ExprVecDeref(vecName, index) => ???
+      case ExprVecMake(expressions) =>
+        val (size, addresses) = addressContext.vectorVars(expressions.size)
+        (Mov(size, expressions.size) ::
+          expressions.zip(addresses).toList.flatMap { case (expression, address) => assemble(expression, address) }) :+
+          Mov(position, stackPointerReg)
+      case ExprVecLength(vecName) => Mov(returnReg, addressContext(vecName)) :: (position match {
+        case _: Register => List(
+          Mov(position, IndirectAddress(returnReg, 0))
+        )
+        case _: IndirectAddress => List(
+          Push(IndirectAddress(returnReg, 0)),
+          Pop(position)
+        )
+      })
+      case ExprVecDeref(vecName, indexExpr) =>
+        val temp = addressContext.tempVar
+        val code = assemble(indexExpr, temp)
+        addressContext.released(temp)
+        code ++ List(
+          Mov(returnReg, temp),
+          Add(returnReg, 1),
+          Mov(temp, 8),
+          Imul(temp),
+          Add(returnReg, addressContext(vecName))
+        ) ++ (position match {
+          case _: Register => List(
+            Mov(position, IndirectAddress(returnReg, 0))
+          )
+          case _: IndirectAddress => List(
+            Push(IndirectAddress(returnReg, 0)),
+            Pop(position))
+        })
       //Call
       case ExprCall(name, args) =>
         protectTempVars(assembleCucaCall(name, args) :+ Mov(position, returnReg), addressContext.usedRegisters.filterNot(_ == position))
@@ -186,13 +215,14 @@ abstract class NasmGenerator(prog: Program) {
   implicit def intToNasmConstant(n: Int): Constant = Constant(n)
 
   class AddressContext extends Context[NasmAddress](varName => s"Attempt to access undefined variable: $varName") {
-    var vars = 0
-    var tempVars = 0
-    var maxTempVars = 0
+    private var vars = 0
+    private var tempVars = 0
+    private var maxTempVars = 0
+    private var vectorVars = 0
     var freeRegisters = usableRegisters
     var usedRegisters = List.empty[Register]
 
-    def stackVariables = vars + maxTempVars
+    def stackVariables = vars + maxTempVars + vectorVars
 
     def parameter = this
 
@@ -201,25 +231,33 @@ abstract class NasmGenerator(prog: Program) {
       this
     }
 
-    def tempVar: NasmAddress = {
+    def vectorVars(size: Int): (IndirectAddress, List[IndirectAddress]) = {
+      vectorVars += size + 1
+      (IndirectAddress(stackPointerReg, 0), (1 to size).map(i => IndirectAddress(stackPointerReg, 8 * i)).toList)
+    }
+
+    def tempVarInMemory: NasmAddress = {
+      tempVars += 1
+      if (tempVars > maxTempVars) {
+        val newVarName = s"${funPrefix}temp_var_${maxTempVars.toString}"
+        val newVarAddress = IndirectAddress(oldStackPointerReg, -8 * (stackVariables + 1))
+        this (newVarName) = newVarAddress
+        maxTempVars += 1
+        newVarAddress
+      } else {
+        this (s"${funPrefix}temp_var_${(tempVars - 1).toString}")
+      }
+    }
+
+    def tempVar: NasmAddress =
       if (freeRegisters.isEmpty) {
-        tempVars += 1
-        if (tempVars > maxTempVars) {
-          val newVarName = s"${funPrefix}temp_var_${maxTempVars.toString}"
-          val newVarAddress = IndirectAddress(oldStackPointerReg, -8 * (stackVariables + 1))
-          this (newVarName) = newVarAddress
-          maxTempVars += 1
-          newVarAddress
-        } else {
-          this (s"${funPrefix}temp_var_${(tempVars - 1).toString}")
-        }
+        tempVarInMemory
       } else {
         val register = freeRegisters.head
         freeRegisters = freeRegisters.tail
         usedRegisters = register :: usedRegisters
         register
       }
-    }
 
     def released(tempVar: NasmAddress) = tempVar match {
       case r: Register =>
