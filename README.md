@@ -1,6 +1,6 @@
 # Cucaracha
 
-Este proyecto contiene el el parser y analizador semántico del lenguaje Cucaracha.
+Este proyecto contiene el el parser, analizador semántico, interperte y compilador del lenguaje Cucaracha.
 
 ### Arquitectura
 
@@ -18,26 +18,41 @@ Este proyecto contiene el el parser y analizador semántico del lenguaje Cucarac
  - Windows: ejecutar `gradlew.bat spec`
  - Linux: ejecutar `chmod +x ./gradlew && ./gradlew spec`
  
- No debería ser necesario instalar nada más. Los scripts descargan automáticamente todas las dependencias necesarias.
+No debería ser necesario instalar nada más. Los scripts descargan automáticamente todas las dependencias necesarias.
  
-### Ejecutar un archivo
+### Interpretar un archivo
 
-  - Windows: ejecutar `gradlew.bat run -Dtarget="./ruta/al/archivo"`
-  - Linux: ejecutar `./gradlew run -Dtarget="./ruta/al/archivo"`
+  - Windows: ejecutar `gradlew.bat run -Din="./ruta/al/archivo"`
+  - Linux: ejecutar `./gradlew run -Din="./ruta/al/archivo"`
 
-  Ejemplos:
-  - Windows: `gradlew.bat run -Dtarget="./src/test/tests_cucaracha/test01.input"`
-  - Linux: `./gradlew run -Dtarget="./src/test/tests_cucaracha/test01.input"`
+Ejemplos:
+  - Windows: `gradlew.bat run -Din="./src/test/tests_cucaracha/test01.input"`
+  - Linux: `./gradlew run -Din="./src/test/tests_cucaracha/test01.input"`
 
-  Tambien se puede modificar el texto en CucaApp.scala e invocar run sin argumentos.
+Tambien se puede modificar el texto de la clase Run (archivo CucaApp.scala) e invocar run sin un archivo especifico.
 
 ### Compilar un archivo
 
-  - Windows: ejecutar `gradlew.bat assemble -Dtarget="./ruta/al/archivo"`
-  - Linux: ejecutar `./gradlew assemble -Dtarget="./ruta/al/archivo"`
+  - Windows: ejecutar `gradlew.bat compile`
+  - Linux: ejecutar `./gradlew compile`
 
-  Ejemplos:
-  - Windows: `gradlew.bat compile -Dtarget="./src/test/tests_cucaracha/test01.input"`
-  - Linux: `./gradlew compile -Dtarget="./src/test/tests_cucaracha/test01.input"`
+Adicionalmente se proveen tres opciones extra:
 
-  Tambien se puede modificar el texto en CucaApp.scala e invocar compile sin argumentos.
+- `-Dformat`
+Permite especificar para que plataforma se desea generar el codigo.
+En caso de no utilizarse esta opcion, el programa generara assembler para el sistema operativo en el que esta ejecutandose.
+
+  - Generar para Windows: `-Dformat=win64`
+  - Generar para Linux: `-Dformat=elf64`
+
+- `-Din`
+Permite especificar un archivo desde donde leer el codigo a compilar.
+En caso de no utilizarse esta opcion, el programa compilara el texto de la clase Compile (archivo CucaApp.scala).
+
+  - Ejemplo: `-Din="./src/test/tests_cucaracha/test01.input"`
+
+- `-Dout`
+Permite especificar el archivo donde escribir el codigo generado. Crea o sobreescribe el archivo en caso de ser necesario.
+En caso de no utilizarse esta opcion, el programa mostrara el codigo generado en la consola.
+
+  - Ejemplo: `-Dout="./src/test/tests_cucaracha/test01.asm"`

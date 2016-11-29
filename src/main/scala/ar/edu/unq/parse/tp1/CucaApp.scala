@@ -1,6 +1,8 @@
 package ar.edu.unq.parse.tp1
 
 import java.io.{FileInputStream, FileNotFoundException}
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Paths}
 
 import ar.edu.unq.parse.tp1.assembler._
 import ar.edu.unq.parse.tp1.ast.ASTifier
@@ -13,7 +15,7 @@ abstract class CucaApp extends App {
 
   val defaultFile = "./src/test/tests_cucaracha/test01.input"
 
-  val target = System.getProperty("target", "")
+  val target = System.getProperty("in", "")
 
   val inputStream = if (target != "") {
     val fileStream = try {
@@ -80,13 +82,20 @@ object Compile extends CucaApp {
       | }
     """
 
-  val generator =
-    if (SystemUtils.IS_OS_WINDOWS)
-      new NasmGenerator(ast) with WindowsEnviroment
-    else if (SystemUtils.IS_OS_UNIX)
-      new NasmGenerator(ast) with UnixEnviroment
-    else
-      throw new RuntimeException("Unsuported operating system")
+  val platform = System.getProperty("format", "")
 
-  println(generator.generate.toText)
+  val generator = platform match {
+    case "win64" => new NasmGenerator(ast) with WindowsEnviroment
+    case "elf64" => new NasmGenerator(ast) with UnixEnviroment
+    case "" if SystemUtils.IS_OS_WINDOWS => new NasmGenerator(ast) with WindowsEnviroment
+    case "" if SystemUtils.IS_OS_UNIX => new NasmGenerator(ast) with UnixEnviroment
+    case _ => throw new RuntimeException("Unsuported operating system")
+  }
+
+  val out = System.getProperty("out", "")
+  if (out != "") {
+    Files.write(Paths.get(out), generator.generate.toText.getBytes(StandardCharsets.UTF_8))
+  } else {
+    println(generator.generate.toText)
+  }
 }

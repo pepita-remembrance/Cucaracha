@@ -10,25 +10,25 @@ trait ExecutionEnviroment extends NasmGenerator {
 
   def returnReg = Register("rax")
 
-  def usableRegisters = List(Register("r12"), Register("r13"), Register("r14"), Register("r15"))
+  def usableRegisters = List(
+    Register("r8"),
+    Register("r9"),
+    Register("r10"),
+    Register("r11"),
+    Register("r12"),
+    Register("r13"),
+    Register("r14"),
+    Register("r15")
+  )
 
-  //First integer register
+  //Reserved for putChar/putNum assembly
   def reserved1: Register
 
-  //Second integer register
+  //Reserved for putNum assembly
   def reserved2: Register
 
-  //Third integer register
+  //Reserved for vector assembly
   def reserved3: Register
-
-  //Fourth integer register
-  def reserved4: Register
-
-  //Fifth integer register
-  def reserved5: Register
-
-  //Sixth integer register
-  def reserved6: Register
 
   def assemblePutNum(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction]
 
@@ -41,15 +41,9 @@ trait WindowsEnviroment extends ExecutionEnviroment {
 
   def reserved2: Register = Register("rdx")
 
-  def reserved3: Register = Register("r8")
+  def reserved3: Register = Register("rbx")
 
-  def reserved4: Register = Register("r9")
-
-  def reserved5: Register = Register("r10")
-
-  def reserved6: Register = Register("r11")
-
-  override def usableRegisters = Register("rbx") :: Register("rdi") :: Register("rsi") :: super.usableRegisters
+  override def usableRegisters = Register("rdi") :: Register("rsi") :: super.usableRegisters
 
   def assemblePutNum(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] =
     Sub(stackPointerReg, 32) ::
@@ -76,15 +70,9 @@ trait UnixEnviroment extends ExecutionEnviroment {
 
   def reserved2: Register = Register("rsi")
 
-  def reserved3: Register = Register("rdx")
+  def reserved3: Register = Register("rbx")
 
-  def reserved4: Register = Register("rcx")
-
-  def reserved5: Register = Register("r8")
-
-  def reserved6: Register = Register("r9")
-
-  override def usableRegisters = Register("r10") :: Register("r11") :: super.usableRegisters
+  override def usableRegisters = Register("rdx") :: Register("rcx") :: super.usableRegisters
 
   def assemblePutNum(value: Expression)(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] =
     assemble(value, reserved2) ++

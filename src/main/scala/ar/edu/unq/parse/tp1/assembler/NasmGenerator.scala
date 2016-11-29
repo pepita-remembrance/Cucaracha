@@ -1,6 +1,6 @@
 package ar.edu.unq.parse.tp1.assembler
 
-import ar.edu.unq.parse.tp1.{Context, assembler}
+import ar.edu.unq.parse.tp1.Context
 import ar.edu.unq.parse.tp1.PredefinedFunctions.{PutChar, PutNum}
 import ar.edu.unq.parse.tp1.ast.expressions._
 import ar.edu.unq.parse.tp1.ast.statements._
@@ -63,13 +63,14 @@ abstract class NasmGenerator(prog: Program) {
           Add(returnReg, 1),
           Mov(temp1, 8),
           Imul(temp1),
-          Add(returnReg, addressContext(vecName))
+          Mov(reserved3, addressContext(vecName)),
+          Sub(reserved3, returnReg)
         )
         temp2 match {
-          case _: Register => buffer.append(Mov(IndirectAddress(returnReg, 0), temp2))
+          case _: Register => buffer.append(Mov(IndirectAddress(reserved3, 0), temp2))
           case _: IndirectAddress => buffer.append(
             Push(temp2),
-            Pop(IndirectAddress(returnReg, 0))
+            Pop(IndirectAddress(reserved3, 0))
           )
         }
       case s: StatementIf =>
@@ -116,9 +117,22 @@ abstract class NasmGenerator(prog: Program) {
 
   private def assembleCucaCall(funName: String, args: Seq[Expression])(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] = {
     val buffer = emptyBuffer
+    val temps = args.map { expr =>
+      val temp = addressContext.tempVar
+      buffer.appendAll(assemble(expr, temp))
+      temp
+    }
     if (args.nonEmpty) buffer.append(Sub(stackPointerReg, 8 * args.size))
-    args.zipWithIndex.foreach {
-      case (expr, i) => buffer.appendAll(assemble(expr, IndirectAddress(stackPointerReg, 8 * i)))
+    temps.zipWithIndex.foreach {
+      case (temp, i) =>
+        addressContext.released(temp)
+        temp match {
+          case _: Register => buffer.append(Mov(IndirectAddress(stackPointerReg, 8 * i), temp))
+          case _: IndirectAddress => buffer.append(
+            Push(temp),
+            Pop(IndirectAddress(stackPointerReg, 8 * i))
+          )
+        }
     }
     buffer.append(Call(s"$funPrefix$funName"))
     if (args.nonEmpty) buffer.append(Add(stackPointerReg, 8 * args.size))
@@ -191,10 +205,11 @@ abstract class NasmGenerator(prog: Program) {
         assembleCmp(expr1, expr2, position, JumpNe)
       //Vector
       case ExprVecMake(expressions) =>
-        val (size, addresses) = addressContext.vectorVars(expressions.size)
-        (Mov(size, expressions.size) ::
-          expressions.zip(addresses).toList.flatMap { case (expression, address) => assemble(expression, address) }) :+
-          Mov(position, stackPointerReg)
+        val (offset, size, addresses) = addressContext.vectorVars(expressions.size)
+        Mov(position, oldStackPointerReg) ::
+          Sub(position, offset) ::
+          Mov(size, expressions.size) ::
+          expressions.zip(addresses).toList.flatMap { case (expression, address) => assemble(expression, address) }
       case ExprVecLength(vecName) => Mov(returnReg, addressContext(vecName)) :: (position match {
         case _: Register => List(
           Mov(position, IndirectAddress(returnReg, 0))
@@ -213,13 +228,14 @@ abstract class NasmGenerator(prog: Program) {
           Add(returnReg, 1),
           Mov(temp, 8),
           Imul(temp),
-          Add(returnReg, addressContext(vecName))
+          Mov(reserved3, addressContext(vecName)),
+          Sub(reserved3, returnReg)
         ) ++ (position match {
           case _: Register => List(
-            Mov(position, IndirectAddress(returnReg, 0))
+            Mov(position, IndirectAddress(reserved3, 0))
           )
           case _: IndirectAddress => List(
-            Push(IndirectAddress(returnReg, 0)),
+            Push(IndirectAddress(reserved3, 0)),
             Pop(position))
         })
       //Call
@@ -251,10 +267,11 @@ abstract class NasmGenerator(prog: Program) {
       this
     }
 
-    def vectorVars(size: Int): (IndirectAddress, List[IndirectAddress]) = {
-      val vars = (0 to size+1).map(i => IndirectAddress(stackPointerReg, 8 * (i + vectorVars))).toList
-      vectorVars += size + 1
-      (vars.head, vars.tail)
+    def vectorVars(amount: Int): (Int, IndirectAddress, List[IndirectAddress]) = {
+      val addresses = (0 to amount + 1).map(i => IndirectAddress(oldStackPointerReg, -8 * (i + 1 + vectorVars + vars))).toList
+      vectorVars += (amount + 1)
+      val offset = Math.abs(addresses.head.offset)
+      (offset, addresses.head, addresses.tail)
     }
 
     private def tempVarInMemory: NasmAddress = {
@@ -290,7 +307,7 @@ abstract class NasmGenerator(prog: Program) {
   }
 
   implicit class NasmCucaFunction(fun: CucaFunction) {
-    def nasmName = funPrefix ++ fun.id.toLowerCase
+    def nasmName = funPrefix ++ fun.id
 
     def stackVariables = addressContext.stackVariables
 
@@ -301,7 +318,7 @@ abstract class NasmGenerator(prog: Program) {
       fun.params.zipWithIndex.foreach {
         case (Parameter(name, _), i) => context.parameter(name) = IndirectAddress(oldStackPointerReg, 8 * (i + 2))
       }
-      val localVariables = allAssignements().map(_.id).diff(fun.params.map(_.id)).distinct
+      val localVariables = allAssignements().map(_.id).distinct.diff(fun.params.map(_.id))
       localVariables.zipWithIndex.foreach {
         case (name, i) => context.variable(name) = IndirectAddress(oldStackPointerReg, -8 * (i + 1))
       }
