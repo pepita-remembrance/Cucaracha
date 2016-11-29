@@ -117,22 +117,9 @@ abstract class NasmGenerator(prog: Program) {
 
   private def assembleCucaCall(funName: String, args: Seq[Expression])(implicit addressContext: AddressContext, rootLabel: Label): List[NasmInstruction] = {
     val buffer = emptyBuffer
-    val temps = args.map { expr =>
-      val temp = addressContext.tempVar
-      buffer.appendAll(assemble(expr, temp))
-      temp
-    }
     if (args.nonEmpty) buffer.append(Sub(stackPointerReg, 8 * args.size))
-    temps.zipWithIndex.foreach {
-      case (temp, i) =>
-        addressContext.released(temp)
-        temp match {
-          case _: Register => buffer.append(Mov(IndirectAddress(stackPointerReg, 8 * i), temp))
-          case _: IndirectAddress => buffer.append(
-            Push(temp),
-            Pop(IndirectAddress(stackPointerReg, 8 * i))
-          )
-        }
+    args.zipWithIndex.foreach {
+      case (expr, i) => buffer.appendAll(assemble(expr, IndirectAddress(stackPointerReg, 8 * i)))
     }
     buffer.append(Call(s"$funPrefix$funName"))
     if (args.nonEmpty) buffer.append(Add(stackPointerReg, 8 * args.size))
