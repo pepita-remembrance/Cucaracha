@@ -61,9 +61,9 @@ object Compile extends CucaApp {
   def text =
     """
       | fun main() {
-      |   vec := [65, 66, 67, 68]
-      |   vec[2] := 64
-      |   show(vec[1+1])
+      |   vec1 := [65, 66, 67, 68]
+      |   vec2 := [65, 66, 67, 68]
+      |   show(vec1[2] + vec2[0])
       | }
       |
       | fun show(n: Int) {

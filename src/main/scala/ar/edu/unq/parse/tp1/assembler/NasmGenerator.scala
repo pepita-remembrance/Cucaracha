@@ -252,11 +252,12 @@ abstract class NasmGenerator(prog: Program) {
     }
 
     def vectorVars(size: Int): (IndirectAddress, List[IndirectAddress]) = {
+      val vars = (0 to size+1).map(i => IndirectAddress(stackPointerReg, 8 * (i + vectorVars))).toList
       vectorVars += size + 1
-      (IndirectAddress(stackPointerReg, 0), (1 to size).map(i => IndirectAddress(stackPointerReg, 8 * i)).toList)
+      (vars.head, vars.tail)
     }
 
-    def tempVarInMemory: NasmAddress = {
+    private def tempVarInMemory: NasmAddress = {
       tempVars += 1
       if (tempVars > maxTempVars) {
         val newVarName = s"${funPrefix}temp_var_${maxTempVars.toString}"
